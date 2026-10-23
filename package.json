@@ -1,0 +1,50 @@
+{
+  "name": "break-anything",
+  "version": "0.1.0",
+  "description": "One CLI and MCP server for coding agents to find vulnerabilities across code, dependencies, apps, and infrastructure — on targets you own or are authorized to test.",
+  "type": "module",
+  "keywords": [
+    "security",
+    "vulnerability",
+    "sast",
+    "sca",
+    "mcp",
+    "agent",
+    "cve",
+    "osv",
+    "reachability",
+    "appsec"
+  ],
+  "homepage": "https://github.com/EnkiHQ/break-anything#readme",
+  "bugs": {
+    "url": "https://github.com/EnkiHQ/break-anything/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EnkiHQ/break-anything.git"
+  },
+  "author": "EnkiHQ",
+  "license": "MIT",
+  "bin": {
+    "brk": "bin/brk.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "DISCLAIMER.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "mcp": "node bin/brk.js mcp",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

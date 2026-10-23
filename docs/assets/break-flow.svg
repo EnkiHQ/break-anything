@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 360" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#8b93a7"/>
+    </marker>
+    <style>
+      .box{rx:12;ry:12;stroke-width:1.5;}
+      .t{fill:#0f1222;font-size:15px;font-weight:600;}
+      .s{fill:#5b6478;font-size:12px;}
+      .lbl{fill:#8b93a7;font-size:11px;}
+    </style>
+  </defs>
+
+  <rect x="24" y="140" width="180" height="80" class="box" fill="#eef1fb" stroke="#5c4ee5"/>
+  <text x="114" y="172" text-anchor="middle" class="t">Coding agent</text>
+  <text x="114" y="194" text-anchor="middle" class="s">or your terminal</text>
+
+  <line x1="204" y1="180" x2="300" y2="180" stroke="#8b93a7" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="304" y="130" width="200" height="100" class="box" fill="#f4f6fd" stroke="#5c4ee5"/>
+  <text x="404" y="166" text-anchor="middle" class="t">Break Anything</text>
+  <text x="404" y="188" text-anchor="middle" class="s">CLI + MCP</text>
+  <text x="404" y="208" text-anchor="middle" class="s">capability router</text>
+
+  <line x1="504" y1="180" x2="600" y2="180" stroke="#8b93a7" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="604" y="40" width="200" height="56" class="box" fill="#fff" stroke="#c7ccda"/>
+  <text x="704" y="66" text-anchor="middle" class="t">Dependencies</text>
+  <text x="704" y="84" text-anchor="middle" class="lbl">OSV · GHSA · EPSS · KEV</text>
+
+  <rect x="604" y="110" width="200" height="56" class="box" fill="#fff" stroke="#c7ccda"/>
+  <text x="704" y="136" text-anchor="middle" class="t">Source (SAST)</text>
+  <text x="704" y="154" text-anchor="middle" class="lbl">Semgrep · CodeQL · gitleaks</text>
+
+  <rect x="604" y="180" width="200" height="56" class="box" fill="#fff" stroke="#c7ccda"/>
+  <text x="704" y="206" text-anchor="middle" class="t">Running app (DAST)</text>
+  <text x="704" y="224" text-anchor="middle" class="lbl">ZAP · Nuclei · API tests</text>
+
+  <rect x="604" y="250" width="200" height="56" class="box" fill="#fff" stroke="#c7ccda"/>
+  <text x="704" y="276" text-anchor="middle" class="t">Images · IaC</text>
+  <text x="704" y="294" text-anchor="middle" class="lbl">Trivy · Grype · checkov</text>
+
+  <line x1="804" y1="68" x2="900" y2="150" stroke="#8b93a7" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="804" y1="138" x2="900" y2="168" stroke="#8b93a7" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="804" y1="208" x2="900" y2="190" stroke="#8b93a7" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="804" y1="278" x2="900" y2="210" stroke="#8b93a7" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="904" y="130" width="250" height="100" class="box" fill="#eafaf0" stroke="#1f9d57"/>
+  <text x="1029" y="162" text-anchor="middle" class="t">Findings + evidence</text>
+  <text x="1029" y="184" text-anchor="middle" class="s">reachability · PoC on your target</text>
+  <text x="1029" y="206" text-anchor="middle" class="s">→ fix plan / Patch Anything</text>
+
+  <text x="590" y="332" text-anchor="middle" class="lbl">Authorized targets only — software you own or are explicitly permitted to test</text>
+</svg>

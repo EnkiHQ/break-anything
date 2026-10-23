@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.brk/
+.env
+.env.*
+evidence/
+*.sarif
+
+# 本仓库无关的本地探索目录,不发布
+research/
+
+# 保留 demo 的示例密钥文件(故意的假值,用于演示 secrets 扫描)
+!demos/sample-secrets/.env.example
