@@ -129,6 +129,25 @@ a fix. The CLI uses the same workflows.
 Every finding is tagged `confirmed` · `reachable` · `present` · `not-reachable`. Absence of a
 finding is never reported as proof of safety.
 
+## What you point it at
+
+You don't pick a mode. Hand Break Anything whatever you have — it detects the form and routes to
+the right engine.
+
+| You give it | Form | Categories |
+| --- | --- | --- |
+| A repo or source tree | source / tech stack | SCA, SAST, Secrets |
+| A lockfile (`package-lock.json`, `composer.lock`, `go.mod`…) | manifest | SCA |
+| A container image | build artifact | Containers |
+| An APK / IPA or compiled binary | build artifact | Mobile, Fuzzing |
+| A Terraform / Kubernetes / Dockerfile | config | IaC |
+| A running URL or API (yours) | live system | DAST, API |
+| Cloud credentials (yours) | live account | Cloud posture |
+| Git history | repo metadata | Secrets |
+
+Unlike a binary-only inspector, Break Anything spans source, build artifacts, config, and live
+systems. Point it; it figures out the rest.
+
 ## The arsenal
 
 Break Anything is organized by **scan category** — the language security teams actually speak —

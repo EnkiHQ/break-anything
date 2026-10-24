@@ -13,7 +13,7 @@
 [![仅限授权目标](https://img.shields.io/badge/范围-仅限授权目标-d13438?style=flat-square)](../../DISCLAIMER.md)
 [![MIT license](https://img.shields.io/badge/license-MIT-f4c430?style=flat-square)](../../LICENSE)
 
-**[快速开始](#快速开始) · [军火库](#军火库) · [什么时候用它](#什么时候用它) · [工作原理](#工作原理) · [演示](#演示) · [FAQ](#faq)**
+**[快速开始](#快速开始) · [能扫什么](#你可以指给它什么) · [覆盖能力](#覆盖能力与工具链) · [什么时候用它](#什么时候用它) · [工作原理](#工作原理) · [FAQ](#faq)**
 
 <code>npx break-anything setup</code>
 
@@ -95,26 +95,43 @@ Agent 通过 MCP 调用 Break Anything 检查一个你掌控的目标;它路由�
 
 每条发现都标注 `confirmed` · `reachable` · `present` · `not-reachable`。"未发现"绝不等于"安全"。
 
-## 军火库
+## 你可以指给它什么
 
-Break Anything 按**扫描类别**组织(安全团队的通用语言),每一类都编排从业者本就信任的工具。没有一个是玩具——都是真实 CI 流水线和真实渗透里在跑的引擎。
+你不用自己选模式。把手头有的东西丢给 Break Anything,它会**自动识别是什么形态**,再路由到对应引擎。
+
+| 你给它 | 形态 | 对应类别 |
+| --- | --- | --- |
+| 一个仓库 / 源码目录 | 源码 / 技术栈 | 依赖漏洞、代码漏洞、密钥 |
+| 一个 lockfile(`package-lock.json`、`composer.lock`、`go.mod`…) | 依赖清单 | 依赖漏洞 |
+| 一个容器镜像 | 构建产物 | 容器 |
+| 一个 APK / IPA 或编译二进制 | 构建产物 | 移动、模糊测试 |
+| 一份 Terraform / Kubernetes / Dockerfile | 配置 | 基础设施配置 |
+| 一个运行中的网址或 API(你自己的) | 活体系统 | 运行应用、API |
+| 云账号凭据(你自己的) | 活体账号 | 云配置体检 |
+| git 历史 | 仓库元数据 | 密钥 |
+
+不像只能吃编译产物的检查器,Break Anything **横跨源码、构建产物、配置、活体系统**——你指给它,剩下的它来判断。
+
+## 覆盖能力与工具链
+
+Break Anything 按**扫描类别**组织(安全圈通用的分法),每一类都编排从业者本就在用的工具——没有一个是凑数的,都是真实 CI 流水线和真实渗透里在跑的引擎。(括号里是行业缩写,破折号后面是它干什么、再后面是用到的工具。)
 
 图例:✅ 0.1.0 已发 · 🧭 路线图
 
-- **✅ 供应链 / 依赖(SCA)** — OSV / osv-scanner、Trivy、Grype、pip-audit、govulncheck、cargo-audit、composer audit、OWASP Dependency-Check;覆盖 npm/PyPI/Composer/Go/Maven/Cargo/RubyGems/NuGet;叠加 EPSS + CISA KEV + GitHub Advisory;Syft 生成 SBOM。
-- **✅ 密钥(Secrets)** — Gitleaks、TruffleHog、detect-secrets;工作区 + 完整 git 历史;AWS/GCP/Stripe/GitHub/Slack/OpenAI 等模式;脱敏输出。
-- **✅ 容器 / 镜像** — Trivy、Grype、Dockle、Hadolint;OS + 应用层 CVE、Dockerfile 坏味道、镜像层里的密钥。
-- **🧭 静态代码(SAST)** — Semgrep、CodeQL;分语言:Bandit(Py)、gosec(Go)、Brakeman(Rails)、Find-Sec-Bugs(Java)、Psalm/PHPStan(PHP)、njsscan(JS);找注入/XSS/越权/反序列化/路径穿越/SSRF/弱加密,带数据流。
-- **🧭 基础设施即代码(IaC)** — Checkov、tfsec、Terrascan、KICS、kube-bench;Terraform/CloudFormation/K8s/Helm/Dockerfile;公开桶、开放安全组、缺加密、过宽 IAM。
-- **🧭 云态势(CSPM)** — Prowler、ScoutSuite;AWS/GCP/Azure,CIS/PCI/SOC2 基线。
-- **🧭 运行应用(DAST)** — OWASP ZAP、Nuclei、Nikto、Wapiti、sqlmap;OWASP Top 10、注入、XSS、SSRF、认证缺陷,每条带触发请求。
-- **🧭 API 安全** — Schemathesis(OpenAPI 模糊)、ZAP API scan;BOLA/IDOR、认证绕过、批量赋值、过度暴露(OWASP API Top 10)。
-- **🧭 攻击面 / 侦察** — Nmap、ProjectDiscovery(subfinder/httpx/naabu/dnsx);被遗忘的子域、暴露服务、开放端口——仅限你自己的资产。
-- **🧭 智能合约(Web3)** — Slither、Mythril、Echidna;重入、整数溢出、权限缺口、预言机操纵。
-- **🧭 移动** — MobSF、APKiD;APK/IPA;不安全存储、硬编码密钥、弱加密、导出组件。
-- **🧭 模糊测试(Fuzzing)** — AFL++、libFuzzer、Atheris、Jazzer、cargo-fuzz;崩溃、内存安全 bug,带最小复现。
+- **✅ 依赖漏洞(SCA / 软件成分分析)** — 在你整棵依赖树里找有已知漏洞(CVE)的包,并按"你是否真的调用到"排序。工具:OSV / osv-scanner、Trivy、Grype、pip-audit、govulncheck、composer audit、OWASP Dependency-Check;覆盖 npm/PyPI/Composer/Go/Maven/Cargo/RubyGems/NuGet;叠加 EPSS(利用概率)+ CISA KEV(已在野利用)。
+- **✅ 泄露密钥(Secrets)** — 揪出误提交的密钥 / 令牌 / 私钥,连你以为删掉的历史提交里也找得出。工具:Gitleaks、TruffleHog、detect-secrets。
+- **✅ 容器镜像** — 扫你真正要发布的镜像,逐层检查。工具:Trivy、Grype、Dockle、Hadolint;找 OS + 应用层 CVE、Dockerfile 坏味道、层里埋的密钥。
+- **🧭 代码漏洞(SAST / 静态应用安全测试)** — 直接读源码,在上线前找出漏洞代码并给出数据流证据。工具:Semgrep、CodeQL,分语言 Bandit(Py)、gosec(Go)、Brakeman(Rails)、Find-Sec-Bugs(Java)、Psalm(PHP)、njsscan(JS);找注入、XSS、越权、反序列化、路径穿越、SSRF、弱加密。
+- **🧭 基础设施配置(IaC / 基础设施即代码)** — 在 `apply` 上线之前查出云配置错误。工具:Checkov、tfsec、Terrascan、KICS、kube-bench;覆盖 Terraform/CloudFormation/K8s/Helm/Dockerfile;找公开存储桶、开放安全组、缺加密、过宽的 IAM 权限。
+- **🧭 云配置体检(CSPM / 云安全态势管理)** — 按安全基线体检你自己的云账号。工具:Prowler、ScoutSuite;AWS/GCP/Azure,对标 CIS/PCI/SOC2。
+- **🧭 运行应用(DAST / 动态应用安全测试)** — 像外部攻击者那样打你自己运行中的应用(需授权)。工具:OWASP ZAP、Nuclei、Nikto、Wapiti、sqlmap;找 OWASP Top 10、注入、XSS、SSRF、认证缺陷,每条都带能复现的请求。
+- **🧭 API 安全** — 查 API 的逻辑漏洞。工具:Schemathesis(按 OpenAPI 规范做模糊测试)、ZAP;找越权(IDOR/BOLA)、认证绕过、批量赋值、数据过度暴露。
+- **🧭 攻击面 / 资产测绘** — 看清你把哪些东西暴露到了公网(仅限你自己的域名和主机)。工具:Nmap、ProjectDiscovery(subfinder/httpx/naabu);找被遗忘的子域、暴露的服务、开放端口。
+- **🧭 智能合约(Web3)** — 工具:Slither、Mythril、Echidna;找重入、整数溢出、权限缺口、预言机操纵。
+- **🧭 移动 App** — 工具:MobSF、APKiD;吃 APK/IPA;找不安全存储、硬编码密钥、弱加密、导出组件。
+- **🧭 模糊测试(Fuzzing)** — 工具:AFL++、libFuzzer、Jazzer、Atheris;找崩溃和内存安全 bug,每个都带最小复现样本。
 
-逐工具的完整目录和 MCP 契约见 [docs/mcp-tools.md](../mcp-tools.md)。所有动态(发流量)类别**默认关闭**,拒绝任何不在授权白名单里的目标。
+逐工具的完整目录和 MCP 契约见 [docs/mcp-tools.md](../mcp-tools.md)。所有动态(会发流量)的类别**默认关闭**,并拒绝任何不在授权白名单里的目标。
 
 ## 什么时候用它
 
