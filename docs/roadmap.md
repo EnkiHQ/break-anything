@@ -16,24 +16,28 @@ as the shipped scanners.
 
 ## Next
 
-- **SAST** — Semgrep and CodeQL rulepacks for injection, broken access control, insecure
-  deserialization, path traversal, SSRF, hardcoded secrets; data-flow evidence. Languages first:
-  JS/TS, Python, Go, Java, PHP.
+- **SAST** — Semgrep + CodeQL (and Bandit/gosec/Brakeman/Find-Sec-Bugs/Psalm per language) for
+  injection, broken access control, insecure deserialization, path traversal, SSRF, weak crypto;
+  data-flow evidence. Languages first: JS/TS, Python, Go, Java, PHP.
 - **Exploitability engine** — upgrade reachability from "is it imported" to "is the vulnerable
   symbol on a real call path", and rank with EPSS + CISA KEV.
-- **IaC** — Terraform, Dockerfile, Kubernetes, CloudFormation misconfiguration.
-- **DAST (authorized)** — OWASP ZAP + Nuclei against your own running app; API logic tests
-  (IDOR, broken access control, mass assignment) with reproducible requests.
+- **IaC** — Checkov / tfsec / Terrascan / KICS over Terraform, CloudFormation, Kubernetes/Helm,
+  Dockerfile.
+- **DAST (authorized)** — OWASP ZAP + Nuclei + Nikto against your own running app.
 
 ## Later
 
+- **API security** — Schemathesis (OpenAPI fuzzing) + auth-matrix prober for BOLA/IDOR, broken
+  auth, mass assignment (OWASP API Top 10).
+- **Cloud posture (CSPM)** — Prowler / ScoutSuite against your own AWS/GCP/Azure accounts.
+- **Attack surface & recon** — Nmap + ProjectDiscovery suite over your own domains and hosts.
+- **Smart contracts** — Slither / Mythril / Echidna for Solidity.
+- **Mobile** — MobSF for APK/IPA.
+- **Fuzzing** — AFL++ / libFuzzer / Jazzer / Atheris with minimized reproducers.
 - **Self-remediation** — when upstream has no fix: generate a patch, pin, compatibility shim, or
   point to a maintained fork. Deep handoff to [Patch Anything](https://github.com/EnkiHQ/patch-anything).
-- **More ecosystems** — Go modules, Cargo, RubyGems, Maven reachability parity.
-- **Smart contracts** — Slither-backed Solidity analysis.
-- **Evidence bundles** — portable, reproducible finding records that survive across sessions and
-  feed CI gating.
-- **SBOM** — generate and diff SBOMs; watch your dependency chain for the *next* zero-day.
+- **SBOM & evidence bundles** — generate/diff SBOMs (Syft) and portable, reproducible finding
+  records that survive across sessions and gate CI.
 
 ## Principles
 

@@ -14,19 +14,38 @@ applicable terms.
 ## Orchestrated tools (not bundled)
 
 These are invoked if present on your system. Break Anything does not install or redistribute
-them.
+them. Licenses are listed for convenience; verify against each project before relying on it.
 
-| Tool | License | Used by |
+| Category | Tool | License |
 | --- | --- | --- |
-| Trivy (Aqua Security) | Apache-2.0 | `image` scan |
-| Grype (Anchore) | Apache-2.0 | planned image/second-opinion scan |
-| Semgrep | LGPL-2.1 (CLI) | planned SAST |
-| CodeQL | GitHub CodeQL terms | planned SAST (deep) |
-| gitleaks | MIT | planned secret-scan backend |
-| OWASP ZAP | Apache-2.0 | planned DAST |
-| Nuclei (ProjectDiscovery) | MIT | planned template scan |
-| Slither (Trail of Bits) | AGPL-3.0 | planned smart-contract scan |
-| checkov (Prisma/Bridgecrew) | Apache-2.0 | planned IaC scan |
+| SCA | Trivy (Aqua) · Grype (Anchore) · osv-scanner (Google) | Apache-2.0 |
+| SCA | pip-audit · cargo-audit · bundler-audit · govulncheck | Apache-2.0 / MIT |
+| SCA | OWASP Dependency-Check | Apache-2.0 |
+| SBOM | Syft (Anchore) | Apache-2.0 |
+| Secrets | gitleaks · detect-secrets (Yelp) | MIT / Apache-2.0 |
+| Secrets | TruffleHog (Truffle Security) | AGPL-3.0 |
+| Images | Dockle · Hadolint | Apache-2.0 / GPL-3.0 |
+| SAST | Semgrep | LGPL-2.1 (CLI) |
+| SAST | CodeQL | GitHub CodeQL terms (research/CI) |
+| SAST | Bandit · gosec · Brakeman · njsscan · cppcheck | Apache-2.0 / MIT / GPL |
+| IaC | Checkov · tfsec · Terrascan · KICS | Apache-2.0 |
+| IaC | kube-score · kubesec · kube-bench | Apache-2.0 |
+| CSPM | Prowler | Apache-2.0 |
+| CSPM | ScoutSuite (NCC Group) | GPL-2.0 |
+| DAST | OWASP ZAP | Apache-2.0 |
+| DAST | Nuclei · httpx · subfinder · naabu (ProjectDiscovery) | MIT |
+| DAST | Nikto · Wapiti | GPL-2.0 / GPL-2.0 |
+| DAST | sqlmap | GPL-2.0 |
+| API | Schemathesis | MIT |
+| Recon | Nmap | Nmap Public Source License (NPSL) |
+| Web3 | Slither · Echidna (Trail of Bits) | AGPL-3.0 |
+| Web3 | Mythril (Consensys) | MIT |
+| Mobile | MobSF | GPL-3.0 |
+| Fuzzing | AFL++ · libFuzzer · Jazzer · Atheris · cargo-fuzz | Apache-2.0 / MIT |
+
+> Note on copyleft (GPL/AGPL) tools: Break Anything invokes them as separate external processes
+> and does not link or bundle their code, so orchestration does not create a derivative work.
+> You remain responsible for complying with each tool's license when you install and run it.
 
 ## Data sources
 
