@@ -1,0 +1,35 @@
+name: Publish to npm
+
+# 推一个 v* 标签就自动发布。以后更新只需:改 package.json 版本号 → git tag vX.Y.Z → git push --tags
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # 便于将来启用 npm provenance / OIDC
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install deps
+        run: npm ci || npm install
+
+      - name: Sanity check (CLI 能跑起来)
+        run: node bin/brk.js --version
+
+      - name: Publish
+        run: npm publish --access public
+        env:
+          # 在 GitHub 仓库 Settings → Secrets and variables → Actions 里
+          # 添加名为 NPM_TOKEN 的密钥,值为一个 granular automation token(勾 bypass 2FA、Read and write)
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
