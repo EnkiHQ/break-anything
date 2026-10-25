@@ -1,53 +1,51 @@
-# Hero GIF — recording recipe
+# Hero GIF — how it's made
 
-The single most important launch asset. 25–35 seconds, no narration, the README's first image.
+The single most important launch asset: the README's first image. 15–35 seconds, no narration,
+real tool output.
+
+The committed `docs/assets/hero.gif` is generated with [VHS](https://github.com/charmbracelet/vhs)
+from a repeatable script, so anyone can re-render it.
 
 ## What it shows
 
-The runnable script [`demos/hero-demo.sh`](../demos/hero-demo.sh) produces three beats, all on
-targets you own:
+Two beats, both real:
 
-1. **The forgotten dependency** — `cat` a `package.json` pinned to an old `lodash`.
-2. **The scan** — `brk deps` returns real CVEs ranked so the *reachable* criticals rise to the
-   top. Not a 400-line wall; the few that matter.
-3. **The buried secret** — `brk secrets --history` finds an AWS key that was deleted from the
-   code but is still sitting in git history, pinned to the commit.
+1. **A dependency you forgot** — `brk deps demos/sample-npm` runs a live OSV scan and returns the
+   real CVE list for an old `lodash`/`minimist`, ranked by reachability + EPSS, with fix versions.
+2. **A secret you thought you deleted** — `brk secrets /tmp/brk-hero --history` finds an AWS key
+   that was removed from the code but is still in git history, pinned to the commit.
 
-Ending card: `Find → Prove → Fix. npx break-anything`.
+Ending card: `# Find -> Prove -> Fix.    npx break-anything`.
 
-## Record it
+## Re-render it
 
-Install the tools once:
+Install VHS once (macOS):
 
 ```bash
-brew install asciinema agg      # macOS; agg turns the cast into a GIF
+brew install vhs
 ```
 
-Record and convert:
+Then, from the repo root:
 
 ```bash
-cd /path/to/break-anything
-asciinema rec hero.cast -c "bash demos/hero-demo.sh"
-agg --font-size 22 --theme monokai hero.cast docs/assets/hero.gif
+# A proxy is only needed if your network can't reach the OSV API directly.
+HTTPS_PROXY=... HTTP_PROXY=... vhs demos/hero.tape
 ```
 
-Then reference it at the top of the README:
+This writes `docs/assets/hero.gif`. The tape ([`demos/hero.tape`](../demos/hero.tape)) defines a
+`brk` shell function, sets any proxy, and runs [`demos/hero-setup.sh`](../demos/hero-setup.sh) to
+build the throwaway git repo for the secrets beat — all in a hidden prelude.
 
-```markdown
-<img src="docs/assets/hero.gif" alt="Break Anything finding reachable CVEs and a secret buried in git history" width="900" />
-```
+## Tuning
 
-## Tips for a GIF that spreads
+- **Timing:** the `deps` scan hits the network. The `Sleep` after it must exceed the scan time or
+  the next line types over the output. 13s is a safe default; lower it if your network is fast.
+- **Theme / size:** `Set Theme`, `Set FontSize`, `Set Width/Height` at the top of the tape.
+- **Shorter GIF:** most of the length is the live `deps` network wait. To cut it, pre-capture the
+  colored output once (`script -q out.ansi node bin/brk.js deps demos/sample-npm`) and have the
+  tape `cat` it instead of running live.
 
-- Keep the terminal ~90 columns, large font. People watch these on phones.
-- Trim to under 35s. The `deps` result and the "deleted but still in history" reveal are the two
-  moments that make people stop scrolling — land them fast.
-- Do not show a cursor hunting around. The script paces itself; just let it run.
-- Record on a clean prompt, dark theme, no personal paths visible (the script uses a temp dir).
-- Post the GIF in the README, the Show HN, and the X thread. Same asset everywhere.
+## Guardrails (keep the credibility that makes it spread)
 
-## Honesty guardrails (keep the credibility that makes it spread)
-
-- Every target in the GIF is a sample project or a throwaway repo you own. Never a third party.
-- The CVEs and EPSS numbers are real (live OSV / FIRST.org lookups), so the demo holds up when
-  someone reruns it. Do not fake the output.
+- Every target is a sample project or a throwaway repo you own. Never a third party.
+- The CVEs and EPSS numbers are real (live OSV / FIRST.org lookups). Don't fake the output.
