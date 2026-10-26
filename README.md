@@ -42,15 +42,17 @@ fixing it. Before someone else finds it first.
 way an attacker will: which dependency is an open door, what key is still in your git history,
 which endpoint hands over another user's data.
 
-And you're never done. The biggest software companies have patched the same products for twenty
-years and still ship fixes every month; every feature and dependency you add only widens the
-attack surface. You can't close every hole — nobody ever has. So stop triaging 400: find the few
-an attacker can reach *today*, and fix those.
+And you're never done. A critical unauthenticated RCE turned up in PHP itself in October 2026 after
+years in plain sight (php2shell) — if the language behind much of the web still has critical holes,
+so does your app. Every dependency you add widens the surface, and you can't close them all. So fix
+the few an attacker can reach *today*.
 
-Real pentests cost a fortune and the tooling is a thicket. **Break Anything gives your coding agent
-the attacker's-eye view** — in one sentence, on software you own: what's genuinely exploitable,
-proven on *your* build, with the fix. Everything runs locally. Nothing is pointed anywhere you
-don't own.
+And the economics just flipped: the same AI agents that write code now hunt vulnerabilities at
+scale — and attackers have them too. Find your holes first, with the same leverage.
+
+**Break Anything gives your coding agent that attacker's-eye view** — in one sentence, on software
+you own: what's genuinely exploitable, proven on *your* build, with the fix. Everything runs
+locally. Nothing is pointed anywhere you don't own.
 
 ## Quick start
 
