@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -14,7 +14,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk sast [path]        静态代码分析找漏洞(需 semgrep)
   brk mcp                以 MCP server 模式启动(供 Agent 调用)
   brk doctor             检查运行环境与网络连通性
-  brk setup              打印把 Break Anything 接入 Agent 的 MCP 配置
+  brk setup              自动把 Break Anything 注册进本机各家 Agent(--dry-run 预演,--print 仅打印配置)
   brk --help             显示本帮助
   brk --version          显示版本
 
@@ -142,7 +142,38 @@ async function main() {
   }
 
   if (cmd === "setup") {
-    printSetup();
+    const { flags } = parseFlags(rest);
+    const { runSetup, manualConfig } = await import("../src/setup.js");
+    if (flags.print) {
+      process.stdout.write(
+        "把下面的配置加入你的 MCP 客户端,然后重启 Agent:\n\n" +
+          JSON.stringify(manualConfig, null, 2) + "\n",
+      );
+      return;
+    }
+    const dry = !!flags["dry-run"];
+    const { results, absent, anyPresent } = await runSetup({ dryRun: dry });
+    process.stdout.write(`Break Anything · setup${dry ? " (dry run)" : ""}\n\n`);
+    if (!anyPresent) {
+      process.stdout.write(
+        "未检测到受支持的 Agent。把下面的配置手动加入你的 MCP 客户端:\n\n" +
+          JSON.stringify(manualConfig, null, 2) + "\n",
+      );
+      return;
+    }
+    const label = {
+      created: "✓ 已注册(新建配置)", updated: "✓ 已注册", already: "• 已存在,无需改动",
+      "would-create": "将新建并注册", "would-update": "将注册",
+      skipped: "⚠ 跳过", error: "✗ 出错",
+    };
+    for (const r of results) {
+      process.stdout.write(`  ${label[r.status] || r.status}  ${r.agent.name}\n`);
+      process.stdout.write(`      ${r.agent.file}\n`);
+      if (r.backup) process.stdout.write(`      已备份原配置 → ${r.backup}\n`);
+      if (r.reason) process.stdout.write(`      ${r.reason}\n`);
+    }
+    if (absent.length) process.stdout.write(`\n未检测到(已跳过):${absent.map((a) => a.name).join("、")}\n`);
+    if (!dry) process.stdout.write(`\n重启你的 Agent,然后对它说:"用 Break Anything 扫描我的项目"。\n`);
     return;
   }
 
@@ -166,19 +197,6 @@ async function doctor() {
     out.push(`OSV API 不可达 ✗ (${e instanceof Error ? e.message : e})`);
   }
   process.stdout.write(out.join("\n") + "\n");
-}
-
-function printSetup() {
-  const config = {
-    mcpServers: {
-      "break-anything": { command: "npx", args: ["-y", "break-anything", "mcp"] },
-    },
-  };
-  process.stdout.write(
-    "把下面的配置加入你的 MCP 客户端(Claude Code / Cursor / Codex 等):\n\n" +
-      JSON.stringify(config, null, 2) +
-      "\n\n然后重启 Agent,对它说:用 Break Anything 扫描我的项目依赖。\n",
-  );
 }
 
 main().catch((err) => {

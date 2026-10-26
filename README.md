@@ -60,8 +60,9 @@ locally. Nothing is pointed anywhere you don't own.
 npx break-anything setup
 ```
 
-Pick your agent, approve the changes, restart. Works with Claude Code, Codex, Cursor, Gemini CLI,
-Windsurf, and anything that runs a local MCP server. Then just ask:
+One command. It auto-detects Claude Desktop, Claude Code, Cursor, Codex, Gemini CLI and Windsurf
+on your machine and registers Break Anything into each — backing up every file it touches,
+preserving your other servers, safe to re-run. Restart your agent, then just ask:
 
 ```text
 Use Break Anything on this project. Show me only the vulnerabilities that are

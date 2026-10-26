@@ -4,6 +4,7 @@ import { normalizeTrivy } from "../src/image.js";
 import { normalizeSemgrep } from "../src/sast.js";
 import { severityRank } from "../src/osv.js";
 import { classify, reachRank } from "../src/reachability.js";
+import { mergeMcpJson, tomlHasServer, appendTomlServer } from "../src/setup.js";
 
 // 这些都是纯函数测试,不触网,适合 CI。
 
@@ -106,4 +107,27 @@ test("normalizeSemgrep:坏输入不抛异常", () => {
   const r = normalizeSemgrep("not json", "x");
   assert.equal(r.ok, false);
   assert.equal(r.findings.length, 0);
+});
+
+test("mergeMcpJson:保留原有服务,加入 break-anything", () => {
+  const existing = { mcpServers: { other: { command: "x" } }, somethingElse: 1 };
+  const out = mergeMcpJson(existing);
+  assert.equal(out.somethingElse, 1); // 不动无关字段
+  assert.deepEqual(out.mcpServers.other, { command: "x" }); // 不动别的 server
+  assert.deepEqual(out.mcpServers["break-anything"], { command: "npx", args: ["-y", "break-anything", "mcp"] });
+  // 不改原对象
+  assert.equal(existing.mcpServers["break-anything"], undefined);
+});
+
+test("mergeMcpJson:空/无输入也能建出结构", () => {
+  assert.ok(mergeMcpJson(undefined).mcpServers["break-anything"]);
+  assert.ok(mergeMcpJson({}).mcpServers["break-anything"]);
+});
+
+test("TOML:检测与追加 section(幂等)", () => {
+  assert.equal(tomlHasServer('[mcp_servers.other]\n'), false);
+  const once = appendTomlServer('[mcp_servers.other]\ncommand = "x"\n');
+  assert.equal(tomlHasServer(once), true);
+  assert.match(once, /\[mcp_servers\.break-anything\]/);
+  assert.match(once, /command = "npx"/);
 });

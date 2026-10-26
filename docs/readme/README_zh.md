@@ -47,7 +47,7 @@ Break Anything 把你的编码 Agent 指向你自己的代码、应用和基础�
 npx break-anything setup
 ```
 
-选 Agent、确认改动、重启。支持 Claude Code、Codex、Cursor、Gemini CLI、Windsurf,以及任何能跑本地 MCP 的客户端。然后直接说:
+一行命令。它自动探测本机的 Claude Desktop、Claude Code、Cursor、Codex、Gemini CLI、Windsurf,把 Break Anything 注册进每一个——每个文件先备份、保留你原有的其它 server、可安全重复运行。重启 Agent,然后直接说:
 
 ```text
 用 Break Anything 扫这个项目。只给我代码里真正可达的漏洞,证明最严重的那条,给我修复方案。

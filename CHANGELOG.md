@@ -12,6 +12,14 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - CISA KEV enrichment in `deps`.
 
+## [0.3.0] - 2026-10-26
+
+### Added
+- `setup` now **auto-registers** Break Anything's MCP server into every supported agent it finds
+  on the machine — Claude Desktop, Claude Code, Cursor, Codex, Gemini CLI, Windsurf. It backs up
+  each config first, preserves everything else, is idempotent, and never corrupts a malformed
+  config (it skips it). `--dry-run` previews; `--print` just prints the config.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added
@@ -33,6 +41,7 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/EnkiHQ/break-anything/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/EnkiHQ/break-anything/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/EnkiHQ/break-anything/releases/tag/v0.1.0
