@@ -6,10 +6,21 @@ All notable changes to Break Anything are documented here. This project follows
 ## [Unreleased]
 
 ### Planned
-- SAST scanner (Semgrep/CodeQL) for injection, broken access control, deserialization.
+- More SAST engines (CodeQL, Bandit, gosec, Brakeman, Find-Sec-Bugs, .NET, frontend).
 - DAST scanner (OWASP ZAP / Nuclei) for authorized running apps.
-- IaC scanner (Terraform / Dockerfile / Kubernetes).
+- IaC scanner (Terraform / Dockerfile / Kubernetes) with Kubescape.
+- Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - CISA KEV enrichment in `deps`.
+
+## [0.2.0] - 2026-10-24
+
+### Added
+- `sast` — static application security testing via Semgrep: injection, broken access control,
+  insecure deserialization, SSRF, hardcoded secrets — each with file/line, CWE/OWASP tags, and the
+  offending snippet. Supports `--config` and `--top`.
+- `sast_scan` MCP tool.
+- `--top=N` on `deps` (and `sast`) to show only the worst N findings.
+- English-first CLI output (`BRK_LANG=zh` for Chinese).
 
 ## [0.1.0] - 2026-10-23
 
@@ -22,5 +33,6 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/EnkiHQ/break-anything/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/EnkiHQ/break-anything/releases/tag/v0.1.0

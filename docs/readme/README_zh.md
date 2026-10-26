@@ -59,6 +59,7 @@ npx break-anything setup
 npx -y break-anything deps ./              # 依赖 CVE,按可达性 + EPSS 排序
 npx -y break-anything secrets ./ --history # 工作区 + 完整 git 历史里的泄露密钥
 npx -y break-anything image my-svc:latest  # 容器镜像的 OS + 应用层 CVE
+npx -y break-anything sast ./src           # 静态代码分析(注入、越权、SSRF…)
 ```
 
 ## 凭什么不一样
@@ -105,10 +106,11 @@ npx -y break-anything image my-svc:latest  # 容器镜像的 OS + 应用层 CVE
 - **依赖(SCA)** — 整棵依赖树的已知 CVE,按可达性 + EPSS 排序,带修复版本。引擎:[OSV](https://osv.dev)、[Trivy](https://github.com/aquasecurity/trivy)、[Grype](https://github.com/anchore/grype)、pip-audit、govulncheck、composer audit。覆盖 npm/PyPI/Composer/Go/Maven/Cargo/RubyGems/NuGet。
 - **密钥(Secrets)** — 工作区 + 完整 git 历史里的泄露 key/令牌/私钥,脱敏。引擎:[Gitleaks](https://github.com/gitleaks/gitleaks)、[TruffleHog](https://github.com/trufflesecurity/trufflehog)。
 - **容器镜像** — OS + 应用层 CVE、Dockerfile 坏味道、层里的密钥。引擎:[Trivy](https://github.com/aquasecurity/trivy)、[Grype](https://github.com/anchore/grype)、[Hadolint](https://github.com/hadolint/hadolint)。
+- **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF、硬编码密钥——每条带文件/行号、CWE/OWASP 标签和命中代码片段。引擎:[Semgrep](https://semgrep.dev)。
 
 ### 🧭 路线图
 
-- **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF,带数据流证据。Semgrep、CodeQL、SonarQube CE、Bandit(Py)、gosec(Go)、Brakeman(Rails)、Find-Sec-Bugs(Java)、security-code-scan(.NET)、retire.js(前端 JS)。
+- **更多 SAST 引擎** — [CodeQL](https://codeql.github.com)、SonarQube CE、Bandit(Py)、gosec(Go)、Brakeman(Rails)、Find-Sec-Bugs(Java)、security-code-scan(.NET)、retire.js(前端 JS)。
 - **基础设施与 Kubernetes(IaC)** — `apply` 前揪出公开桶、开放端口、过宽 IAM、集群配置错误。[Checkov](https://www.checkov.io)、tfsec、Terrascan、[KICS](https://kics.io)、[Kubescape](https://github.com/kubescape/kubescape)、kube-bench、[Falco](https://falco.org)(运行时)。
 - **运行应用与攻击面(DAST)** — OWASP Top 10、目录/参数发现、XSS、注入,打你授权的应用。[OWASP ZAP](https://www.zaproxy.org)、[Nuclei](https://github.com/projectdiscovery/nuclei)、[Nikto](https://github.com/sullo/nikto)、[ffuf](https://github.com/ffuf/ffuf)、[Katana](https://github.com/projectdiscovery/katana)、[Dalfox](https://github.com/hahwul/dalfox)、[sqlmap](https://sqlmap.org);攻击面测绘用 [Nmap](https://nmap.org) + [Amass](https://github.com/owasp-amass/amass) + ProjectDiscovery。
 - **API** — 越权(IDOR/BOLA)、认证绕过、批量赋值(OWASP API Top 10)。[Schemathesis](https://github.com/schemathesis/schemathesis)、ZAP。

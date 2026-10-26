@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -11,6 +11,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk deps [path]        扫描依赖 lockfile 的已知漏洞(默认当前目录)
   brk secrets [path]     扫描泄露的密钥(工作区,--history 加扫 git 历史)
   brk image <ref>        扫描容器镜像的已知漏洞(需 trivy)
+  brk sast [path]        静态代码分析找漏洞(需 semgrep)
   brk mcp                以 MCP server 模式启动(供 Agent 调用)
   brk doctor             检查运行环境与网络连通性
   brk setup              打印把 Break Anything 接入 Agent 的 MCP 配置
@@ -112,6 +113,23 @@ async function main() {
     } else {
       const color = flags.color !== false && process.stdout.isTTY;
       process.stdout.write(renderImage(result, { color }) + "\n");
+    }
+    const hasHigh = result.findings?.some((f) => f.severity === "CRITICAL" || f.severity === "HIGH");
+    process.exitCode = hasHigh ? 1 : 0;
+    return;
+  }
+
+  if (cmd === "sast") {
+    const { flags, positional } = parseFlags(rest);
+    const target = positional[0] || process.cwd();
+    const { scanSast } = await import("../src/sast.js");
+    const { renderSast } = await import("../src/report.js");
+    const result = await scanSast(target, flags.config ? { config: flags.config } : {});
+    if (flags.json) {
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    } else {
+      const color = flags.color !== false && process.stdout.isTTY;
+      process.stdout.write(renderSast(result, { color, top: flags.top ? Number(flags.top) : undefined }) + "\n");
     }
     const hasHigh = result.findings?.some((f) => f.severity === "CRITICAL" || f.severity === "HIGH");
     process.exitCode = hasHigh ? 1 : 0;

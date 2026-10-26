@@ -35,6 +35,8 @@ const T = {
     imageClean: "✓ No known vulnerabilities in the image.",
     more: (n) => `… ${n} more, use --json for the full list`,
     fixable: "fixable",
+    sastTitle: "Break Anything · static code scan",
+    sastClean: "✓ No issues found by the static-analysis rules.",
   },
   zh: {
     depsTitle: "Break Anything · 依赖扫描",
@@ -60,6 +62,8 @@ const T = {
     imageClean: "✓ 未在镜像中发现已知漏洞。",
     more: (n) => `… 还有 ${n} 条,用 --json 查看全部`,
     fixable: "可修复",
+    sastTitle: "Break Anything · 静态代码扫描",
+    sastClean: "✓ 静态分析规则未发现问题。",
   },
 }[LANG];
 
@@ -178,5 +182,44 @@ export function renderImage(result, { color = true } = {}) {
   const s = result.summary;
   const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
   lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${s.fixable} ${T.fixable}  ·  ${parts}`);
+  return lines.join("\n");
+}
+
+// ---- SAST ----
+export function renderSast(result, { color = true, top } = {}) {
+  const c = palette(color);
+  const lines = [];
+  lines.push(`${c.bold}${T.sastTitle}${c.reset} ${c.gray}(${result.engine})${c.reset}`);
+
+  if (!result.ok) {
+    lines.push("");
+    lines.push(`${c.yellow}${result.message}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  lines.push(`${c.gray}${result.target}${c.reset}`);
+  lines.push("");
+  if (!result.findings.length) {
+    lines.push(`${c.green}${T.sastClean}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  const shown = top && result.findings.length > top ? result.findings.slice(0, top) : result.findings;
+  for (const f of shown) {
+    const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
+    const tags = [f.cwe[0], f.owasp[0]].filter(Boolean).join(" · ");
+    lines.push(`${sev} ${c.bold}${f.rule}${c.reset} ${c.gray}${tags}${c.reset}`);
+    lines.push(`  ${c.cyan}${f.location}${c.reset}  ${c.gray}${f.message.slice(0, 100)}${c.reset}`);
+    if (f.snippet) lines.push(`  ${c.gray}${f.snippet.slice(0, 90)}${c.reset}`);
+    lines.push("");
+  }
+  if (shown.length < result.findings.length) {
+    lines.push(`${c.gray}${T.more(result.findings.length - shown.length)}${c.reset}`);
+    lines.push("");
+  }
+
+  const s = result.summary;
+  const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
+  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${parts}`);
   return lines.join("\n");
 }

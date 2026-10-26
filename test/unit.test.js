@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { normalizeTrivy } from "../src/image.js";
+import { normalizeSemgrep } from "../src/sast.js";
 import { severityRank } from "../src/osv.js";
 import { classify, reachRank } from "../src/reachability.js";
 
@@ -64,6 +65,45 @@ test("normalizeTrivy:把 trivy JSON 归一化成统一发现结构", () => {
 
 test("normalizeTrivy:坏输入不抛异常", () => {
   const r = normalizeTrivy("not json", "x");
+  assert.equal(r.ok, false);
+  assert.equal(r.findings.length, 0);
+});
+
+test("normalizeSemgrep:把 semgrep JSON 归一化并映射严重度", () => {
+  const sample = {
+    results: [
+      {
+        check_id: "javascript.express.security.audit.xss.direct-response-write",
+        path: "src/app.js",
+        start: { line: 42 },
+        extra: {
+          severity: "ERROR",
+          message: "Detected directly writing user input to the response (XSS).",
+          lines: "res.send(req.query.name)",
+          metadata: { cwe: ["CWE-79: Cross-site Scripting"], owasp: ["A03:2021 - Injection"], confidence: "HIGH" },
+        },
+      },
+      {
+        check_id: "python.lang.security.audit.weak-hash",
+        path: "util/hash.py",
+        start: { line: 7 },
+        extra: { severity: "WARNING", message: "MD5 is weak", lines: "hashlib.md5(x)", metadata: {} },
+      },
+    ],
+    paths: { scanned: ["src/app.js", "util/hash.py"] },
+    errors: [],
+  };
+  const r = normalizeSemgrep(sample, "./");
+  assert.equal(r.ok, true);
+  assert.equal(r.summary.total, 2);
+  assert.equal(r.findings[0].severity, "HIGH"); // ERROR -> HIGH, 排在前
+  assert.equal(r.findings[0].cwe[0], "CWE-79: Cross-site Scripting");
+  assert.equal(r.findings[1].severity, "MEDIUM"); // WARNING -> MEDIUM
+  assert.equal(r.findings[0].rule, "xss.direct-response-write");
+});
+
+test("normalizeSemgrep:坏输入不抛异常", () => {
+  const r = normalizeSemgrep("not json", "x");
   assert.equal(r.ok, false);
   assert.equal(r.findings.length, 0);
 });

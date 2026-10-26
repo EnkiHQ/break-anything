@@ -6,19 +6,20 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.1.0)
+## Shipped (0.2.0)
 
 - **Supply chain / dependencies (SCA)** — npm, Composer (PHP), pip; OSV lookup, import-based
   reachability heuristic, EPSS, fix versions.
 - **Secrets** — working tree + git history, redacted output.
 - **Container images** — via Trivy.
-- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`.
+- **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,
+  with CWE/OWASP tags and the offending snippet.
+- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`.
 
 ## Next
 
-- **SAST** — Semgrep + CodeQL (and Bandit/gosec/Brakeman/Find-Sec-Bugs/Psalm per language) for
-  injection, broken access control, insecure deserialization, path traversal, SSRF, weak crypto;
-  data-flow evidence. Languages first: JS/TS, Python, Go, Java, PHP.
+- **More SAST engines** — CodeQL, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs
+  (Java), security-code-scan (.NET), retire.js (frontend) — broaden language/stack coverage.
 - **Exploitability engine** — upgrade reachability from "is it imported" to "is the vulnerable
   symbol on a real call path", and rank with EPSS + CISA KEV.
 - **IaC** — Checkov / tfsec / Terrascan / KICS over Terraform, CloudFormation, Kubernetes/Helm,

@@ -4,6 +4,7 @@ import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprot
 import { scanDependencies } from "./scan.js";
 import { scanSecrets } from "./secrets.js";
 import { scanImage } from "./image.js";
+import { scanSast } from "./sast.js";
 
 const TOOLS = [
   {
@@ -58,11 +59,27 @@ const TOOLS = [
       required: ["ref"],
     },
   },
+  {
+    name: "sast_scan",
+    description:
+      "Static application security testing (SAST) on a source tree using Semgrep. Finds injection, " +
+      "broken access control, insecure deserialization, SSRF, hardcoded secrets and more, each with " +
+      "file/line, CWE/OWASP tags, and the offending snippet. Requires Semgrep to be installed. " +
+      "Scan only code you own or are authorized to test.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Absolute path to the source tree to scan." },
+        config: { type: "string", description: "Semgrep ruleset (default p/security-audit)." },
+      },
+      required: ["path"],
+    },
+  },
 ];
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.1.0" },
+    { name: "break-anything", version: "0.2.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -81,6 +98,9 @@ export async function startMcpServer() {
       } else if (name === "image_scan") {
         if (!strArg(args.ref)) return bad("缺少必填参数 ref。");
         result = await scanImage(args.ref);
+      } else if (name === "sast_scan") {
+        if (!strArg(args.path)) return bad("缺少必填参数 path。");
+        result = await scanSast(args.path, args.config ? { config: args.config } : {});
       } else {
         return bad(`Unknown tool: ${name}`);
       }

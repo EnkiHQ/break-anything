@@ -74,6 +74,7 @@ Prefer the terminal? One command, shipped today:
 npx -y break-anything deps ./              # dependency CVEs, ranked by reachability + EPSS
 npx -y break-anything secrets ./ --history # leaked keys in the tree and full git history
 npx -y break-anything image my-svc:latest  # OS + app CVEs in a container image
+npx -y break-anything sast ./src           # static code analysis (injection, authz, SSRF…)
 ```
 
 ## Why it's different
@@ -132,10 +133,11 @@ already run in real pipelines. ✅ shipped in 0.1.0 · 🧭 on the roadmap.
 - **Dependencies (SCA)** — known CVEs across your whole tree, ranked by reachability + EPSS, with fix versions. Engines: [OSV](https://osv.dev), [Trivy](https://github.com/aquasecurity/trivy), [Grype](https://github.com/anchore/grype), `pip-audit`, `govulncheck`, `composer audit`. Ecosystems: npm, PyPI, Composer, Go, Maven, Cargo, RubyGems, NuGet.
 - **Secrets** — leaked keys/tokens/private keys in the working tree and full git history, redacted. Engines: [Gitleaks](https://github.com/gitleaks/gitleaks), [TruffleHog](https://github.com/trufflesecurity/trufflehog).
 - **Container images** — OS + app CVEs, Dockerfile smells, secrets in layers. Engines: [Trivy](https://github.com/aquasecurity/trivy), [Grype](https://github.com/anchore/grype), [Hadolint](https://github.com/hadolint/hadolint).
+- **Static code (SAST)** — injection, broken access control, insecure deserialization, SSRF, hardcoded secrets — each with file/line, CWE/OWASP tags, and the offending snippet. Engine: [Semgrep](https://semgrep.dev).
 
 ### 🧭 On the roadmap
 
-- **Static code (SAST)** — injection, broken access control, insecure deserialization, SSRF, with data-flow evidence. [Semgrep](https://semgrep.dev), [CodeQL](https://codeql.github.com), SonarQube CE, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs (Java), security-code-scan (.NET), retire.js (frontend JS).
+- **More SAST engines** — [CodeQL](https://codeql.github.com), SonarQube CE, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs (Java), security-code-scan (.NET), retire.js (frontend JS).
 - **Infrastructure & Kubernetes (IaC)** — public buckets, open ports, over-broad IAM, misconfigured clusters — before `apply`. [Checkov](https://www.checkov.io), tfsec, Terrascan, [KICS](https://kics.io), [Kubescape](https://github.com/kubescape/kubescape), kube-bench, [Falco](https://falco.org) (runtime).
 - **Running apps & attack surface (DAST)** — OWASP Top 10, content/parameter discovery, XSS, injection against your authorized app. [OWASP ZAP](https://www.zaproxy.org), [Nuclei](https://github.com/projectdiscovery/nuclei), [Nikto](https://github.com/sullo/nikto), [ffuf](https://github.com/ffuf/ffuf), [Katana](https://github.com/projectdiscovery/katana), [Dalfox](https://github.com/hahwul/dalfox), [sqlmap](https://sqlmap.org); surface mapping via [Nmap](https://nmap.org) + [Amass](https://github.com/owasp-amass/amass) + ProjectDiscovery.
 - **API** — BOLA/IDOR, broken auth, mass assignment (OWASP API Top 10). [Schemathesis](https://github.com/schemathesis/schemathesis), ZAP.

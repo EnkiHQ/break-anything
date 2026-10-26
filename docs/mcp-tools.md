@@ -4,8 +4,9 @@ Break Anything is one MCP interface over a deep arsenal of industry-standard sca
 MCP interface describes *what the agent wants to learn*; a provider decides *how* to answer. This
 page is the exhaustive catalog, organized by scan category.
 
-Legend: **✅ shipped in 0.1.0** · **🧭 roadmap**. Dynamic (traffic-sending) tools are **off by
-default** and refuse any target not on the authorization allowlist.
+Legend: **✅ shipped (0.2.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`)** · **🧭
+roadmap**. Dynamic (traffic-sending) tools are **off by default** and refuse any target not on the
+authorization allowlist.
 
 ---
 
@@ -48,14 +49,16 @@ default** and refuse any target not on the authorization allowlist.
 
 ---
 
-## 🧭 Static code analysis (SAST) — `sast_scan`
+## ✅ Static code analysis (SAST) — `sast_scan`
 
 | | |
 | --- | --- |
-| **Multi-language** | Semgrep, CodeQL |
-| **Per-language** | Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs/SpotBugs (Java), Psalm/PHPStan taint (PHP), njsscan + ESLint-security (JS/TS), cppcheck + clang-analyzer (C/C++) |
-| **Finds** | SQL/command/template injection, XSS, broken access control, insecure deserialization, path traversal, SSRF, weak crypto, ReDoS — with data-flow evidence |
-| **Planned tool** | `sast_scan(path, languages?, rulepacks?)` |
+| **Status** | ✅ shipped (requires Semgrep) |
+| **Primary engine** | Semgrep (default ruleset `p/security-audit`) |
+| **Roadmap engines** | CodeQL, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs (Java), Psalm/PHPStan (PHP), njsscan (JS/TS), cppcheck (C/C++) |
+| **Finds** | injection, XSS, broken access control, insecure deserialization, path traversal, SSRF, weak crypto — each with file/line, CWE/OWASP tags, and the snippet |
+| **MCP tool** | `sast_scan(path, config?)` |
+| **CLI** | `brk sast <path> [--json] [--config=<ruleset>] [--top=N]` |
 
 ## 🧭 Infrastructure as Code (IaC) — `iac_scan`
 
