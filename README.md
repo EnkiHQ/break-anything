@@ -4,12 +4,13 @@
 
 # Break Anything
 
-### Your scanner lists 400 vulnerabilities. Which 3 can actually reach you?
+### You think your service is secure. You've never seen it the way an attacker would.
 
-Point your coding agent at code you own. Break Anything finds the weaknesses that are **truly
-reachable**, proves them on your own build, and fixes them — before anyone else does.
+Break Anything points your coding agent at your own code, apps, and infrastructure and hunts them
+**like an attacker** — surfacing what's genuinely exploitable, proving it on your own build, and
+fixing it. Before someone else finds it first.
 
-*Security scanning, minus the noise.*
+*See your own service through an attacker's eyes.*
 
 [![npm version](https://img.shields.io/badge/npm-break--anything-cb3837?style=flat-square)](https://www.npmjs.com/package/break-anything)
 [![MCP tool catalog](https://img.shields.io/badge/MCP-tool_catalog-5c4ee5?style=flat-square)](docs/mcp-tools.md)
@@ -36,15 +37,15 @@ reachable**, proves them on your own build, and fixes them — before anyone els
 
 ---
 
-`npm audit` reports 47 vulnerabilities. `trivy` reports 300 more. You don't have time to triage
-400 findings, so you bump a few versions and hope. Meanwhile the one that's *actually reachable
-from your code* sits there, and a key you deleted last spring is still sitting in your git
-history.
+"It's probably fine." It shipped, it works, nobody has complained — so you assume it's secure. But
+"no breach yet" was never a security test. The only honest one is to look at your own service the
+way an attacker will: which dependency is an open door, what key is still in your git history,
+which endpoint hands over another user's data.
 
-**Break Anything cuts the noise.** Ask your agent in one sentence; it runs the right scanners,
-then tells you the three things that can actually hurt you — each with a proof-of-concept built
-against *your* build and a fix ready to apply. Everything runs locally. Nothing is pointed
-anywhere you don't own.
+Most developers never run that test — the tools are a thicket and a real pentest costs a fortune.
+**Break Anything gives your coding agent the attacker's-eye view** — in one sentence, on software
+you own. It finds what's genuinely exploitable, proves it on *your* build, and hands you the fix.
+Everything runs locally. Nothing is pointed anywhere you don't own.
 
 ## Quick start
 
@@ -73,9 +74,10 @@ npx -y break-anything image my-svc:latest  # OS + app CVEs in a container image
 Every scanner can hand you a list. The list is the problem. Break Anything is built around the
 three things a list can't do:
 
-- **Reachability, not presence.** It separates `confirmed` → `reachable` → `present` →
-  `not-reachable`. The vulnerable `lodash` you never call is noise; the one on a live code path is
-  the finding. You triage 3, not 400.
+- **Reachability — it thinks like an attacker.** An attacker doesn't work through 400 theoretical
+  CVEs; they go straight for the few they can actually reach. Break Anything does the same:
+  `confirmed` → `reachable` → `present` → `not-reachable`. The vulnerable `lodash` you never call
+  is noise; the one on a live code path is the finding. You triage 3, not 400.
 - **Proof, not prose.** Instead of a CVSS paragraph, it builds a proof-of-concept against *your*
   build — the exact input or request that breaks it — so "theoretically vulnerable" becomes
   "here's the repro."

@@ -6,10 +6,13 @@ launch-day data ([arXiv 2511.04453](https://arxiv.org/abs/2511.04453)).
 
 ## The one-liner (use everywhere, unchanged)
 
-> **Break Anything** — your scanner lists 400 vulnerabilities; your agent should tell you which 3
-> can actually reach you. It finds them, proves them on your own build, and fixes them.
+> **Break Anything** — you think your service is secure, but you've never looked at it the way an
+> attacker would. Point your coding agent at code you own; it finds what's genuinely exploitable,
+> proves it on your own build, and fixes it.
 
-Rule: lead with the pain, not the feature. "X but without Y" = *security scanning, minus the noise.*
+Rule: lead with the fear/pain, not the feature. The hook is the awareness gap ("you never actually
+tested it"); the proof is reachability (an attacker only cares about what they can reach — so does
+Break Anything).
 
 ## Timing
 
@@ -21,18 +24,18 @@ else; the "Show HN" tag itself adds nothing after controlling for timing and con
 **Title** (formula: `[Name] – [plain description]`; no caps, no `!`, no praise):
 
 ```
-Show HN: Break Anything – an MCP that finds which vulnerabilities actually reach your code
+Show HN: Break Anything – an MCP that audits your own code the way an attacker would
 ```
 
 **First comment** (this is where the story goes, not the title — personal story earns ~3× the
 upvotes of a dry description):
 
-> I kept running `npm audit` / `trivy` and getting 400 findings I had no time to triage, so I'd
-> bump a few versions and hope. The one that mattered was usually buried. I built Break Anything
-> to answer one question: of everything a scanner flags, which are actually reachable from my
-> code? It's an MCP server + CLI that orchestrates OSV, Trivy, gitleaks (Semgrep/ZAP next) behind
-> your coding agent, ranks findings by reachability + EPSS, builds a proof-of-concept against your
-> own build, and — when upstream has no fix — proposes a patch. Defensive, local,
+> My app was "probably secure" — it shipped, it worked, nobody complained, so I never actually
+> tested it. That's most software. I built Break Anything to close that gap: point your coding
+> agent at code you own and it looks at it the way an attacker would. It's an MCP server + CLI
+> that orchestrates OSV, Trivy, gitleaks (Semgrep/ZAP next), ranks findings by reachability + EPSS
+> (an attacker only cares about what they can actually reach), builds a proof-of-concept against
+> your own build, and — when upstream has no fix — proposes a patch. Defensive, local,
 > authorized-targets-only. Companion project Patch Anything does the repair half. Honest about
 > limits: reachability is today a heuristic (is it imported), not yet full call-path proof.
 > Feedback welcome, especially on the reachability engine.

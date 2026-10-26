@@ -20,11 +20,11 @@ Type "clear" Enter
 Show
 
 Sleep 400ms
-Type "# 12 vulns flagged here. which ones can actually reach me?" Enter
+Type '# "it is probably secure." lets check it the way an attacker would.' Enter
 Sleep 1100ms
 Type "brk deps demos/sample-npm" Enter
 Sleep 3000ms
-Type "# ^ only the ones my code really calls. and a key i deleted is still in git:" Enter
+Type "# ^ only what an attacker could actually reach. and a key is still in git:" Enter
 Sleep 1100ms
 Type "brk secrets /tmp/brk-hero --history" Enter
 Sleep 2600ms
