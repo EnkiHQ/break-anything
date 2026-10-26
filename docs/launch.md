@@ -1,82 +1,67 @@
 # Launch kit
 
-Timing: publish Friday. Trending incubates over the weekend. Post the moment the hero GIF is
-ready, not before.
+Research-backed. Sources: Show HN title formula ([signals.sh](https://signals.sh/blog/show-hn-title-formulas)),
+star-spike patterns ([dev.to, 50 repos](https://dev.to/0012303/i-analyzed-50-github-repos-that-went-from-0-to-10k-stars-here-are-the-7-patterns-54o1)),
+launch-day data ([arXiv 2511.04453](https://arxiv.org/abs/2511.04453)).
 
-## The one-liner (use everywhere)
+## The one-liner (use everywhere, unchanged)
 
-> **Break Anything** — point your agent at code you own, find the weakness, prove it, fix it.
-> The REA for vulnerabilities.
+> **Break Anything** — your scanner lists 400 vulnerabilities; your agent should tell you which 3
+> can actually reach you. It finds them, proves them on your own build, and fixes them.
 
-## Slogans (pick one per channel)
+Rule: lead with the pain, not the feature. "X but without Y" = *security scanning, minus the noise.*
 
-- Break it before they do.
-- Your agent now has a security team.
-- Find the bug. Prove the bug. Kill the bug.
-- After REA understood everything, Break Anything finds what's broken.
+## Timing
 
-## Hero GIF (the single most important asset)
+Launch **Tuesday–Thursday, ~8–10am US Eastern**. Timing moves stars more than almost anything
+else; the "Show HN" tag itself adds nothing after controlling for timing and content.
 
-15–30 seconds, no narration:
+## Hacker News (the multiplier — 87% of 10K-star repos start here)
 
-1. Drag a repo (or type one prompt) into the agent.
-2. Break Anything returns 3 findings — not 400 — each tagged `reachable`.
-3. One finding expands into a proof request against localhost.
-4. "Hand to Patch Anything" → a fix PR appears.
+**Title** (formula: `[Name] – [plain description]`; no caps, no `!`, no praise):
 
-Record demo 1 (Juice Shop) or demo 8 (your Express IDOR). Both run on targets you own.
+```
+Show HN: Break Anything – an MCP that finds which vulnerabilities actually reach your code
+```
 
-## Hacker News (Show HN)
+**First comment** (this is where the story goes, not the title — personal story earns ~3× the
+upvotes of a dry description):
 
-Title: `Show HN: Break Anything – an MCP that finds, proves, and fixes vulns in your own code`
+> I kept running `npm audit` / `trivy` and getting 400 findings I had no time to triage, so I'd
+> bump a few versions and hope. The one that mattered was usually buried. I built Break Anything
+> to answer one question: of everything a scanner flags, which are actually reachable from my
+> code? It's an MCP server + CLI that orchestrates OSV, Trivy, gitleaks (Semgrep/ZAP next) behind
+> your coding agent, ranks findings by reachability + EPSS, builds a proof-of-concept against your
+> own build, and — when upstream has no fix — proposes a patch. Defensive, local,
+> authorized-targets-only. Companion project Patch Anything does the repair half. Honest about
+> limits: reachability is today a heuristic (is it imported), not yet full call-path proof.
+> Feedback welcome, especially on the reachability engine.
 
-Body (short, factual, no hype):
+## Cross-posts (same day → next day)
 
-> After REA wrapped reverse-engineering tools for agents, I wanted the same for AppSec. Break
-> Anything is one MCP server that gives your coding agent Semgrep, CodeQL, OSV, Trivy, ZAP and
-> friends behind one interface. The part I care about: it ranks findings by whether the
-> vulnerable code is actually reachable in your project, builds a PoC against your own build, and
-> — when upstream has no fix — proposes a patch or mitigation. Defensive only; dynamic scanning
-> is off by default and refuses targets not on your allowlist. Companion project Patch Anything
-> does the repair half. Feedback welcome, especially on the reachability engine.
+- **r/netsec, r/programming** — lead with the reachability angle: "most SCA reports presence; this
+  reports what's actually reachable + a PoC on your own target."
+- **X / 即刻 thread** — beat 1: the 400-vs-3 pain. beat 2: the hero GIF. beat 3: find → prove →
+  fix. beat 4: companion Patch Anything. beat 5: repo + 10 demos.
+- **V2EX / 掘金** — 直给、不绕:标题「`npm audit` 报你 47 个漏洞,到底哪 3 个能真打穿你?」正文讲
+  可达性 + 自己靶子的 PoC + 上游不修时的自救,强调防御定位与「只打自己授权的目标」。
+- **Awesome lists** — submit a one-line PR to the relevant awesome-security / awesome-devsecops
+  lists. These are GitHub's long-tail search engine (steady stars for months).
 
-## r/netsec / r/programming
+## Hero GIF
 
-Lead with the reachability angle (that is what this crowd respects):
+The README's first asset. Current cut (`vhs demos/hero.tape`) tells the whole story in ~19s with
+plain-language captions: *12 vulns here — which actually reach me?* → the reachable ones →
+*a key I deleted is still in git* → *found, proven, fixed.* Keep it under ~20s. See
+[hero-gif.md](hero-gif.md).
 
-> Most SCA tools report presence. Break Anything reports reachability + a PoC against your own
-> target, and handles the "upstream won't fix it" case. MCP server, works with Claude Code /
-> Cursor / Codex. Defensive, authorized-targets-only. Repo + 10 reproducible demos (all on labs
-> you own) inside.
+## Guardrails (don't skip)
 
-## X / 即刻 thread
-
-1/ php2shell reminded everyone: your stack breaks even when your code is clean.
-2/ So I built Break Anything — point your agent at software you own, it finds what's broken,
-   proves it, and fixes it.
-3/ The trick isn't another scanner. It's reachability: 3 findings that matter, not 400 that
-   don't. [GIF]
-4/ Find → Prove → Fix. The fix half is a companion project, Patch Anything.
-5/ Defensive only, authorized targets only, runs local. Repo + 10 demos ↓
-
-## V2EX
-
-标题:`给 AI Agent 配一个安全团队:Break Anything(攻破一切)`
-
-正文:承接 php2shell 的话题,说清"不是又一个扫描器,卖点是可达性 + 对自己靶子的 PoC + 上游不修时的自救",
-强调防御定位和"只打自己授权的目标",附仓库和 10 个自有靶场 demo。
-
-## Cross-promotion with Patch Anything
-
-- Each README links the other in the first screen.
-- Ship them the same week; lead with Break (discovery is more viral), let it funnel stars to
-  Patch.
-- Pinned issue in each repo: "Using Break + Patch together" with the demo 10 loop.
-
-## Guardrails for the launch (do not skip)
-
-- README line 1 states authorized-targets-only. This is your takedown insurance.
-- Every demo and screenshot uses a lab or your own host. Never show popping a third party.
-- Do not accept PRs that add turnkey exploits for specific live targets.
-- Respond to "can it scan example.com?" with the authorization policy, publicly. It sets the tone
-  and protects the project.
+- **Never buy stars.** ~6M fake stars exist on GitHub and fake-star repos get flagged/banned;
+  a fake curve destroys the credibility a real launch builds.
+- README line 1 is the pain, not the feature. Install command visible without scrolling.
+- Every demo/screenshot uses a lab or your own host. Never a third party.
+- Respond to every early issue within 24h — even just an acknowledgment. It converts drive-by
+  visitors into stargazers.
+- Be honest about limits (reachability heuristic, roadmap vs shipped). Restraint reads as
+  credibility; overclaiming gets picked apart.
