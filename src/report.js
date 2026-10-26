@@ -67,7 +67,7 @@ function palette(color) {
   return color ? C : new Proxy({}, { get: () => "" });
 }
 
-export function renderHuman(result, { color = true } = {}) {
+export function renderHuman(result, { color = true, top } = {}) {
   const c = palette(color);
   const lines = [];
 
@@ -88,7 +88,8 @@ export function renderHuman(result, { color = true } = {}) {
     return lines.join("\n");
   }
 
-  for (const f of result.findings) {
+  const shown = top && result.findings.length > top ? result.findings.slice(0, top) : result.findings;
+  for (const f of shown) {
     const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
     const idLabel = f.cve || f.id;
     const fix = f.fixedVersions.length
@@ -97,6 +98,10 @@ export function renderHuman(result, { color = true } = {}) {
     lines.push(`${sev} ${c.bold}${f.package}@${f.version}${c.reset} ${c.gray}(${f.ecosystem})${c.reset}`);
     lines.push(`  ${c.cyan}${idLabel}${c.reset}  ·  ${T.reach[f.reachability]}  ·  ${T.epss(f.epss)}  ·  ${fix}`);
     if (f.summary) lines.push(`  ${c.gray}${f.summary.replace(/\s+/g, " ").slice(0, 120)}${c.reset}`);
+    lines.push("");
+  }
+  if (shown.length < result.findings.length) {
+    lines.push(`${c.gray}${T.more(result.findings.length - shown.length)}${c.reset}`);
     lines.push("");
   }
 

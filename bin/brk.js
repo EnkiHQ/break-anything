@@ -35,6 +35,7 @@ function parseFlags(argv) {
     if (a === "--json") flags.json = true;
     else if (a === "--no-reachability") flags.reachability = false;
     else if (a === "--no-color") flags.color = false;
+    else if (a.startsWith("--") && a.includes("=")) { const [k, v] = a.slice(2).split("="); flags[k] = v; }
     else if (a.startsWith("--")) flags[a.slice(2)] = true;
     else positional.push(a);
   }
@@ -69,7 +70,7 @@ async function main() {
       process.stdout.write(JSON.stringify(result, null, 2) + "\n");
     } else {
       const color = flags.color !== false && process.stdout.isTTY;
-      process.stdout.write(renderHuman(result, { color }) + "\n");
+      process.stdout.write(renderHuman(result, { color, top: flags.top ? Number(flags.top) : undefined }) + "\n");
     }
     // 有高危且可达的发现时用非零退出码,方便接 CI
     const hasReachableHigh = result.findings?.some(

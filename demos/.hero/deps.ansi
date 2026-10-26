@@ -1,0 +1,19 @@
+[1mBreak Anything · dependency scan[0m
+[90mtarget demos/sample-npm  ·  2 packages scanned  ·  npm:2[0m
+
+[31mCRITICAL[0m [1mlodash@4.17.4[0m [90m(npm)[0m
+  [36mCVE-2019-10744[0m  ·  reachable  ·  EPSS 5.0%  ·  [32mfix → 4.17.12[0m
+  [90mPrototype Pollution in lodash[0m
+
+[31mCRITICAL[0m [1mminimist@1.2.0[0m [90m(npm)[0m
+  [36mCVE-2021-44906[0m  ·  direct dep  ·  EPSS 4.6%  ·  [32mfix → 1.2.6, 0.2.4[0m
+  [90mPrototype Pollution in minimist[0m
+
+[31mHIGH    [0m [1mlodash@4.17.4[0m [90m(npm)[0m
+  [36mCVE-2021-23337[0m  ·  reachable  ·  EPSS 21.3%  ·  [32mfix → 4.17.21[0m
+  [90mCommand Injection in lodash[0m
+
+[90m… 9 more, use --json for the full list[0m
+
+[1msummary[0m 12 findings  ·  10 reachable  ·  CRITICAL 2  HIGH 4  MODERATE 6
+[90mReachability is a heuristic (is it imported), not proof the vulnerable code runs.[0m
