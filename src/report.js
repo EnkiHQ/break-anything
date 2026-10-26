@@ -37,6 +37,8 @@ const T = {
     fixable: "fixable",
     sastTitle: "Break Anything · static code scan",
     sastClean: "✓ No issues found by the static-analysis rules.",
+    apiTitle: "Break Anything · API security scan (DAST)",
+    apiClean: "✓ No access-control or header issues found.",
   },
   zh: {
     depsTitle: "Break Anything · 依赖扫描",
@@ -64,6 +66,8 @@ const T = {
     fixable: "可修复",
     sastTitle: "Break Anything · 静态代码扫描",
     sastClean: "✓ 静态分析规则未发现问题。",
+    apiTitle: "Break Anything · API 安全扫描(DAST)",
+    apiClean: "✓ 未发现越权/鉴权/响应头问题。",
   },
 }[LANG];
 
@@ -215,6 +219,43 @@ export function renderSast(result, { color = true, top } = {}) {
   }
   if (shown.length < result.findings.length) {
     lines.push(`${c.gray}${T.more(result.findings.length - shown.length)}${c.reset}`);
+    lines.push("");
+  }
+
+  const s = result.summary;
+  const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
+  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${parts}`);
+  return lines.join("\n");
+}
+
+// ---- API / DAST ----
+export function renderApi(result, { color = true } = {}) {
+  const c = palette(color);
+  const lines = [];
+  lines.push(`${c.bold}${T.apiTitle}${c.reset}`);
+
+  if (!result.ok) {
+    lines.push("");
+    lines.push(`${c.yellow}${result.message}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  lines.push(`${c.gray}${result.target}${c.reset}`);
+  lines.push("");
+  if (!result.findings.length) {
+    lines.push(`${c.green}${T.apiClean}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  for (const f of result.findings) {
+    const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
+    lines.push(`${sev} ${c.bold}${f.title}${c.reset} ${c.gray}${f.cwe} · ${f.owasp}${c.reset}`);
+    lines.push(`  ${c.cyan}${f.location}${c.reset}`);
+    const e = f.evidence;
+    if (e) {
+      lines.push(`  ${c.gray}证据: ${e.request}${e.as ? ` (${e.as})` : ""}${e.status ? ` → ${e.status}` : ""} ${e.note || ""}${c.reset}`);
+      if (e.bodySnippet) lines.push(`  ${c.red}泄露内容: ${e.bodySnippet}${c.reset}`);
+    }
     lines.push("");
   }
 

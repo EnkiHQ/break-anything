@@ -131,3 +131,72 @@ test("TOML:检测与追加 section(幂等)", () => {
   assert.match(once, /\[mcp_servers\.break-anything\]/);
   assert.match(once, /command = "npx"/);
 });
+
+// ---- API / DAST 授权闸门与 IDOR 判定(纯函数,不触网)----
+import { checkAuthorization, decideIdor } from "../src/api.js";
+
+test("checkAuthorization:默认关闭(未开 BRK_DYNAMIC_ENABLED)", () => {
+  const g = checkAuthorization("http://localhost:4000", {});
+  assert.equal(g.allowed, false);
+  assert.match(g.reason, /默认关闭/);
+});
+
+test("checkAuthorization:开了开关但目标不在白名单", () => {
+  const g = checkAuthorization("http://evil.example", {
+    BRK_DYNAMIC_ENABLED: "true",
+    BRK_AUTHORIZED_TARGETS_JSON: JSON.stringify(["http://localhost:4000"]),
+  });
+  assert.equal(g.allowed, false);
+  assert.match(g.reason, /白名单/);
+});
+
+test("checkAuthorization:开关 + 目标在白名单 → 放行", () => {
+  const g = checkAuthorization("http://localhost:4000/orders/2", {
+    BRK_DYNAMIC_ENABLED: "true",
+    BRK_AUTHORIZED_TARGETS_JSON: JSON.stringify(["http://localhost:4000"]),
+  });
+  assert.equal(g.allowed, true);
+});
+
+test("checkAuthorization:白名单 JSON 坏了不抛异常,按未授权处理", () => {
+  const g = checkAuthorization("http://localhost:4000", {
+    BRK_DYNAMIC_ENABLED: "true",
+    BRK_AUTHORIZED_TARGETS_JSON: "{ not json",
+  });
+  assert.equal(g.allowed, false);
+});
+
+test("decideIdor:拿到 B 的私有数据且不同于 A 自己的 → 判为越权", () => {
+  const v = decideIdor({
+    crossStatus: 200,
+    crossBody: '{"id":2,"owner":"bob","total":999}',
+    truthBody: '{"id":2,"owner":"bob","total":999}',
+    baselineBody: '{"id":1,"owner":"alice","total":10}',
+  });
+  assert.equal(v.idor, true);
+});
+
+test("decideIdor:跨账户被拒(非 200)→ 不是越权", () => {
+  const v = decideIdor({
+    crossStatus: 403,
+    crossBody: "forbidden",
+    truthBody: '{"id":2,"owner":"bob"}',
+    baselineBody: '{"id":1,"owner":"alice"}',
+  });
+  assert.equal(v.idor, false);
+});
+
+test("decideIdor:返回的内容和 B 自查不一致 → 不判为越权(避免误报)", () => {
+  const v = decideIdor({
+    crossStatus: 200,
+    crossBody: '{"error":"not found"}',
+    truthBody: '{"id":2,"owner":"bob"}',
+    baselineBody: '{"id":1,"owner":"alice"}',
+  });
+  assert.equal(v.idor, false);
+});
+
+test("decideIdor:空响应体不算泄露", () => {
+  const v = decideIdor({ crossStatus: 200, crossBody: "", truthBody: "", baselineBody: "" });
+  assert.equal(v.idor, false);
+});

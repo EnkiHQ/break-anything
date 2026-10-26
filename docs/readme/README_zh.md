@@ -60,6 +60,7 @@ npx -y break-anything deps ./              # 依赖 CVE,按可达性 + EPSS 排�
 npx -y break-anything secrets ./ --history # 工作区 + 完整 git 历史里的泄露密钥
 npx -y break-anything image my-svc:latest  # 容器镜像的 OS + 应用层 CVE
 npx -y break-anything sast ./src           # 静态代码分析(注入、越权、SSRF…)
+npx -y break-anything api http://localhost:4000 --config accounts.json  # 运行中 API 的越权/鉴权检测(需授权)
 ```
 
 ## 凭什么不一样
@@ -99,7 +100,7 @@ npx -y break-anything sast ./src           # 静态代码分析(注入、越权�
 
 ## 军火库
 
-按**扫描类别**组织(安全团队的通用语言),每类都编排真实流水线里在跑的工具。✅ 0.1.0 已发 · 🧭 路线图。
+按**扫描类别**组织(安全团队的通用语言),每类都编排真实流水线里在跑的工具。✅ 0.4.0 已发 · 🧭 路线图。
 
 ### ✅ 今日已发
 
@@ -107,13 +108,14 @@ npx -y break-anything sast ./src           # 静态代码分析(注入、越权�
 - **密钥(Secrets)** — 工作区 + 完整 git 历史里的泄露 key/令牌/私钥,脱敏。引擎:[Gitleaks](https://github.com/gitleaks/gitleaks)、[TruffleHog](https://github.com/trufflesecurity/trufflehog)。
 - **容器镜像** — OS + 应用层 CVE、Dockerfile 坏味道、层里的密钥。引擎:[Trivy](https://github.com/aquasecurity/trivy)、[Grype](https://github.com/anchore/grype)、[Hadolint](https://github.com/hadolint/hadolint)。
 - **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF、硬编码密钥——每条带文件/行号、CWE/OWASP 标签和命中代码片段。引擎:[Semgrep](https://semgrep.dev)。
+- **API 安全(DAST)** — 对一个*运行中*的 API 探测越权(IDOR/BOLA)、缺失鉴权、缺失安全响应头,每条都带可复现的请求作为证据。内置实现;默认关闭,仅限授权目标。
 
 ### 🧭 路线图
 
 - **更多 SAST 引擎** — [CodeQL](https://codeql.github.com)、SonarQube CE、Bandit(Py)、gosec(Go)、Brakeman(Rails)、Find-Sec-Bugs(Java)、security-code-scan(.NET)、retire.js(前端 JS)。
 - **基础设施与 Kubernetes(IaC)** — `apply` 前揪出公开桶、开放端口、过宽 IAM、集群配置错误。[Checkov](https://www.checkov.io)、tfsec、Terrascan、[KICS](https://kics.io)、[Kubescape](https://github.com/kubescape/kubescape)、kube-bench、[Falco](https://falco.org)(运行时)。
-- **运行应用与攻击面(DAST)** — OWASP Top 10、目录/参数发现、XSS、注入,打你授权的应用。[OWASP ZAP](https://www.zaproxy.org)、[Nuclei](https://github.com/projectdiscovery/nuclei)、[Nikto](https://github.com/sullo/nikto)、[ffuf](https://github.com/ffuf/ffuf)、[Katana](https://github.com/projectdiscovery/katana)、[Dalfox](https://github.com/hahwul/dalfox)、[sqlmap](https://sqlmap.org);攻击面测绘用 [Nmap](https://nmap.org) + [Amass](https://github.com/owasp-amass/amass) + ProjectDiscovery。
-- **API** — 越权(IDOR/BOLA)、认证绕过、批量赋值(OWASP API Top 10)。[Schemathesis](https://github.com/schemathesis/schemathesis)、ZAP。
+- **更多 DAST 与攻击面** — 在今天的越权探测之上,增加 OWASP Top 10、目录/参数发现、XSS、注入,打你授权的应用。[OWASP ZAP](https://www.zaproxy.org)、[Nuclei](https://github.com/projectdiscovery/nuclei)、[Nikto](https://github.com/sullo/nikto)、[ffuf](https://github.com/ffuf/ffuf)、[Katana](https://github.com/projectdiscovery/katana)、[Dalfox](https://github.com/hahwul/dalfox)、[sqlmap](https://sqlmap.org);攻击面测绘用 [Nmap](https://nmap.org) + [Amass](https://github.com/owasp-amass/amass) + ProjectDiscovery。
+- **更多 API 检测** — 批量赋值、过度数据暴露、基于 OpenAPI 的模糊测试(OWASP API Top 10)。[Schemathesis](https://github.com/schemathesis/schemathesis)、ZAP。
 - **进攻 / 漏洞利用** — *仅限授权渗透;默认关闭、需显式开启、须书面授权。* 在你拥有的目标上证明可利用性。[Metasploit](https://www.metasploit.com)、sqlmap、[Hydra](https://github.com/vanhauser-thc/thc-hydra)、[Hashcat](https://hashcat.net)、[BloodHound](https://github.com/SpecterOps/BloodHound) + Impacket(域渗透)、[OpenVAS](https://www.openvas.org)。
 - **AI / 大模型安全** — 对你自己的模型和 Agent 做提示注入、越狱、数据泄露检测。[Garak](https://github.com/NVIDIA/garak)。
 - **二进制与产物分析** — 编译二进制里的已知脆弱依赖和不安全模式。[Ghidra](https://ghidra-sre.org)、[radare2](https://github.com/radareorg/radare2)、[angr](https://github.com/angr/angr)(与 REA 互补)。

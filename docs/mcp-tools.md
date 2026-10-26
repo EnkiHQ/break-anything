@@ -4,9 +4,9 @@ Break Anything is one MCP interface over a deep arsenal of industry-standard sca
 MCP interface describes *what the agent wants to learn*; a provider decides *how* to answer. This
 page is the exhaustive catalog, organized by scan category.
 
-Legend: **✅ shipped (0.2.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`)** · **🧭
-roadmap**. Dynamic (traffic-sending) tools are **off by default** and refuse any target not on the
-authorization allowlist.
+Legend: **✅ shipped (0.4.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `api_scan`)** ·
+**🧭 roadmap**. Dynamic (traffic-sending) tools are **off by default** and refuse any target not on
+the authorization allowlist.
 
 ---
 
@@ -78,21 +78,41 @@ authorization allowlist.
 | **Finds** | CIS/PCI/SOC2 control failures, exposed resources, weak IAM |
 | **Planned tool** | `cloud_audit(provider, profile)` — **dynamic, off by default** |
 
-## 🧭 Running web apps (DAST) — `dast_scan`
+## ✅ API security (DAST) — `api_scan`
+
+| | |
+| --- | --- |
+| **Status** | ✅ shipped — **dynamic, off by default** |
+| **Primary engine** | built-in authorization prober (Node `fetch`, no external engine) |
+| **Roadmap engines** | Schemathesis (OpenAPI property-testing/fuzzing), ZAP API scan |
+| **Finds** | broken object-level authorization (IDOR/BOLA, CWE-639 / API1:2023), missing authentication (CWE-306 / API2:2023), missing security headers (CWE-693 / API8:2023) |
+| **Roadmap finds** | mass assignment, excessive data exposure, OpenAPI-driven fuzzing |
+| **Proof** | every finding ships the **reproducing request**, credentials redacted |
+| **Gate** | requires `BRK_DYNAMIC_ENABLED=true` **and** target in `BRK_AUTHORIZED_TARGETS_JSON` |
+| **MCP tool** | `api_scan(baseUrl, accounts?, idorPaths?)` |
+| **CLI** | `brk api <baseUrl> [--config accounts.json] [--json]` |
+
+The IDOR check is designed to avoid false positives: it only flags access when account A's
+credentials return the **exact private resource** account B sees for itself, and that response
+differs from A's own. Supply the two accounts you control via `--config`:
+
+```json
+{
+  "accounts": {
+    "A": { "headers": { "Authorization": "Bearer tokenA" }, "ownedId": "1" },
+    "B": { "headers": { "Authorization": "Bearer tokenB" }, "ownedId": "2" }
+  },
+  "idorPaths": ["/orders/{id}", "/api/users/{id}/profile"]
+}
+```
+
+## 🧭 More running-app checks (DAST) — `dast_scan`
 
 | | |
 | --- | --- |
 | **Engines** | OWASP ZAP, Nuclei, Nikto, Wapiti, sqlmap, ffuf, Katana, Dalfox, gobuster |
-| **Finds** | OWASP Top 10, injection, XSS, SSRF, auth/session flaws, missing headers, hidden content/params — with the triggering request |
+| **Finds** | injection, XSS, SSRF, session flaws, hidden content/params — with the triggering request |
 | **Planned tools** | `dast_scan(url, profile)`, `dast_nuclei(url, templates)` — **dynamic, off by default** |
-
-## 🧭 API security — `api_scan`
-
-| | |
-| --- | --- |
-| **Engines** | Schemathesis (OpenAPI property-testing/fuzzing), ZAP API scan, auth-matrix prober |
-| **Finds** | BOLA/IDOR, broken authentication, mass assignment, excessive data exposure (OWASP API Top 10) |
-| **Planned tools** | `api_idor_probe`, `api_authz_matrix`, `api_fuzz(openapi)` — **dynamic, off by default** |
 
 ## 🧭 Attack surface & recon — `recon`
 

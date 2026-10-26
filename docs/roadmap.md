@@ -6,7 +6,7 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.2.0)
+## Shipped (0.4.0)
 
 - **Supply chain / dependencies (SCA)** — npm, Composer (PHP), pip; OSV lookup, import-based
   reachability heuristic, EPSS, fix versions.
@@ -14,7 +14,10 @@ as the shipped scanners.
 - **Container images** — via Trivy.
 - **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,
   with CWE/OWASP tags and the offending snippet.
-- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`.
+- **API security (DAST)** — dynamic probe of a running API for broken object-level authorization
+  (IDOR/BOLA), missing authentication, and missing security headers, each with the reproducing
+  request as proof. Off by default; authorized targets only.
+- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `api_scan`.
 
 ## Next
 
@@ -22,14 +25,13 @@ as the shipped scanners.
   (Java), security-code-scan (.NET), retire.js (frontend) — broaden language/stack coverage.
 - **Exploitability engine** — upgrade reachability from "is it imported" to "is the vulnerable
   symbol on a real call path", and rank with EPSS + CISA KEV.
+- **More DAST checks** — injection, SSRF, auth/session flaws, plus Nuclei templates and
+  OpenAPI-driven fuzzing (Schemathesis) on top of today's authorization prober.
 - **IaC** — Checkov / tfsec / Terrascan / KICS over Terraform, CloudFormation, Kubernetes/Helm,
   Dockerfile.
-- **DAST (authorized)** — OWASP ZAP + Nuclei + Nikto against your own running app.
 
 ## Later
 
-- **API security** — Schemathesis (OpenAPI fuzzing) + auth-matrix prober for BOLA/IDOR, broken
-  auth, mass assignment (OWASP API Top 10).
 - **Cloud posture (CSPM)** — Prowler / ScoutSuite against your own AWS/GCP/Azure accounts.
 - **Attack surface & recon** — Nmap + Amass + ProjectDiscovery (ffuf/Katana/Dalfox) over your own domains and hosts.
 - **Offensive / exploitation (authorized pentest)** — Metasploit, Hydra, Hashcat, BloodHound + Impacket, OpenVAS. Gated, off by default, written-permission-only; turns a "reachable" finding into a proven one.

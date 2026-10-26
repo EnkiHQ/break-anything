@@ -5,6 +5,7 @@ import { scanDependencies } from "./scan.js";
 import { scanSecrets } from "./secrets.js";
 import { scanImage } from "./image.js";
 import { scanSast } from "./sast.js";
+import { scanApi } from "./api.js";
 
 const TOOLS = [
   {
@@ -75,11 +76,35 @@ const TOOLS = [
       required: ["path"],
     },
   },
+  {
+    name: "api_scan",
+    description:
+      "Dynamic probe of a running HTTP API for broken object-level authorization (IDOR/BOLA), " +
+      "missing authentication, and missing security headers — returns the reproducing request as " +
+      "proof. DYNAMIC, OFF BY DEFAULT: requires BRK_DYNAMIC_ENABLED=true and the target listed in " +
+      "BRK_AUTHORIZED_TARGETS_JSON. Only test APIs you own or are authorized to test.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        baseUrl: { type: "string", description: "Base URL of the API, e.g. http://localhost:4000" },
+        accounts: {
+          type: "object",
+          description: "Two accounts you control: { \"A\": {\"headers\": {\"Authorization\": \"Bearer ...\"}, \"ownedId\": \"1\"}, \"B\": {...} }",
+        },
+        idorPaths: {
+          type: "array",
+          items: { type: "string" },
+          description: "Path templates with {id}, e.g. [\"/orders/{id}\"].",
+        },
+      },
+      required: ["baseUrl"],
+    },
+  },
 ];
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.3.0" },
+    { name: "break-anything", version: "0.4.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -101,6 +126,9 @@ export async function startMcpServer() {
       } else if (name === "sast_scan") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await scanSast(args.path, args.config ? { config: args.config } : {});
+      } else if (name === "api_scan") {
+        if (!strArg(args.baseUrl)) return bad("缺少必填参数 baseUrl。");
+        result = await scanApi({ baseUrl: args.baseUrl, accounts: args.accounts || {}, idorPaths: args.idorPaths || [] });
       } else {
         return bad(`Unknown tool: ${name}`);
       }

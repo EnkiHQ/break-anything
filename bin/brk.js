@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -12,6 +12,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk secrets [path]     扫描泄露的密钥(工作区,--history 加扫 git 历史)
   brk image <ref>        扫描容器镜像的已知漏洞(需 trivy)
   brk sast [path]        静态代码分析找漏洞(需 semgrep)
+  brk api <baseUrl>      对运行中的 API 做越权(IDOR)/鉴权检测(动态,默认关闭,需授权)
   brk mcp                以 MCP server 模式启动(供 Agent 调用)
   brk doctor             检查运行环境与网络连通性
   brk setup              自动把 Break Anything 注册进本机各家 Agent(--dry-run 预演,--print 仅打印配置)
@@ -29,16 +30,26 @@ secrets 选项:
 范围声明:只对你拥有、或已获得明确授权的目标使用。详见 DISCLAIMER.md。
 `;
 
+// 这些 flag 接受一个值,支持 --key=value 与 --key value 两种写法
+const VALUE_FLAGS = new Set(["config", "top"]);
+
 function parseFlags(argv) {
   const flags = {};
   const positional = [];
-  for (const a of argv) {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
     if (a === "--json") flags.json = true;
     else if (a === "--no-reachability") flags.reachability = false;
     else if (a === "--no-color") flags.color = false;
     else if (a.startsWith("--") && a.includes("=")) { const [k, v] = a.slice(2).split("="); flags[k] = v; }
-    else if (a.startsWith("--")) flags[a.slice(2)] = true;
-    else positional.push(a);
+    else if (a.startsWith("--")) {
+      const k = a.slice(2);
+      if (VALUE_FLAGS.has(k) && i + 1 < argv.length && !argv[i + 1].startsWith("--")) {
+        flags[k] = argv[++i];
+      } else {
+        flags[k] = true;
+      }
+    } else positional.push(a);
   }
   return { flags, positional };
 }
@@ -130,6 +141,30 @@ async function main() {
     } else {
       const color = flags.color !== false && process.stdout.isTTY;
       process.stdout.write(renderSast(result, { color, top: flags.top ? Number(flags.top) : undefined }) + "\n");
+    }
+    const hasHigh = result.findings?.some((f) => f.severity === "CRITICAL" || f.severity === "HIGH");
+    process.exitCode = hasHigh ? 1 : 0;
+    return;
+  }
+
+  if (cmd === "api") {
+    const { flags, positional } = parseFlags(rest);
+    const base = positional[0];
+    if (!base) { process.stderr.write("用法:brk api <baseUrl> [--config accounts.json]\n"); process.exitCode = 2; return; }
+    let cfg = { baseUrl: base, accounts: {}, idorPaths: [] };
+    if (flags.config) {
+      const fs = await import("node:fs/promises");
+      try { const j = JSON.parse(await fs.readFile(flags.config, "utf8")); cfg = { ...j, baseUrl: base }; }
+      catch (e) { process.stderr.write(`读取 --config 失败:${e instanceof Error ? e.message : e}\n`); process.exitCode = 2; return; }
+    }
+    const { scanApi } = await import("../src/api.js");
+    const { renderApi } = await import("../src/report.js");
+    const result = await scanApi(cfg);
+    if (flags.json) {
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    } else {
+      const color = flags.color !== false && process.stdout.isTTY;
+      process.stdout.write(renderApi(result, { color }) + "\n");
     }
     const hasHigh = result.findings?.some((f) => f.severity === "CRITICAL" || f.severity === "HIGH");
     process.exitCode = hasHigh ? 1 : 0;
