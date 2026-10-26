@@ -42,10 +42,15 @@ fixing it. Before someone else finds it first.
 way an attacker will: which dependency is an open door, what key is still in your git history,
 which endpoint hands over another user's data.
 
-Most developers never run that test — the tools are a thicket and a real pentest costs a fortune.
-**Break Anything gives your coding agent the attacker's-eye view** — in one sentence, on software
-you own. It finds what's genuinely exploitable, proves it on *your* build, and hands you the fix.
-Everything runs locally. Nothing is pointed anywhere you don't own.
+And you're never done. The biggest software companies have patched the same products for twenty
+years and still ship fixes every month; every feature and dependency you add only widens the
+attack surface. You can't close every hole — nobody ever has. So stop triaging 400: find the few
+an attacker can reach *today*, and fix those.
+
+Real pentests cost a fortune and the tooling is a thicket. **Break Anything gives your coding agent
+the attacker's-eye view** — in one sentence, on software you own: what's genuinely exploitable,
+proven on *your* build, with the fix. Everything runs locally. Nothing is pointed anywhere you
+don't own.
 
 ## Quick start
 
