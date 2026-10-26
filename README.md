@@ -135,11 +135,14 @@ already run in real pipelines. ✅ shipped in 0.1.0 · 🧭 on the roadmap.
 
 ### 🧭 On the roadmap
 
-- **Static code (SAST)** — injection, broken access control, deserialization, SSRF, with data-flow. [Semgrep](https://semgrep.dev), [CodeQL](https://codeql.github.com), Bandit, gosec, Brakeman.
-- **Infrastructure (IaC)** — public buckets, open ports, broad IAM before `apply`. [Checkov](https://www.checkov.io), tfsec, Terrascan, KICS.
-- **Running apps (DAST)** — OWASP Top 10 against your authorized app. [OWASP ZAP](https://www.zaproxy.org), [Nuclei](https://github.com/projectdiscovery/nuclei), sqlmap.
-- **API** — BOLA/IDOR, broken auth, mass assignment. [Schemathesis](https://github.com/schemathesis/schemathesis).
-- **Cloud posture · Attack surface · Smart contracts · Mobile · Fuzzing** — Prowler, Nmap + ProjectDiscovery, [Slither](https://github.com/crytic/slither), [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF), [AFL++](https://github.com/AFLplusplus/AFLplusplus).
+- **Static code (SAST)** — injection, broken access control, insecure deserialization, SSRF, with data-flow evidence. [Semgrep](https://semgrep.dev), [CodeQL](https://codeql.github.com), SonarQube CE, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs (Java), security-code-scan (.NET), retire.js (frontend JS).
+- **Infrastructure & Kubernetes (IaC)** — public buckets, open ports, over-broad IAM, misconfigured clusters — before `apply`. [Checkov](https://www.checkov.io), tfsec, Terrascan, [KICS](https://kics.io), [Kubescape](https://github.com/kubescape/kubescape), kube-bench, [Falco](https://falco.org) (runtime).
+- **Running apps & attack surface (DAST)** — OWASP Top 10, content/parameter discovery, XSS, injection against your authorized app. [OWASP ZAP](https://www.zaproxy.org), [Nuclei](https://github.com/projectdiscovery/nuclei), [Nikto](https://github.com/sullo/nikto), [ffuf](https://github.com/ffuf/ffuf), [Katana](https://github.com/projectdiscovery/katana), [Dalfox](https://github.com/hahwul/dalfox), [sqlmap](https://sqlmap.org); surface mapping via [Nmap](https://nmap.org) + [Amass](https://github.com/owasp-amass/amass) + ProjectDiscovery.
+- **API** — BOLA/IDOR, broken auth, mass assignment (OWASP API Top 10). [Schemathesis](https://github.com/schemathesis/schemathesis), ZAP.
+- **Offensive / exploitation** — *authorized pentest only; gated, off by default, written permission required.* Prove exploitability on targets you own. [Metasploit](https://www.metasploit.com), sqlmap, [Hydra](https://github.com/vanhauser-thc/thc-hydra), [Hashcat](https://hashcat.net), [BloodHound](https://github.com/SpecterOps/BloodHound) + Impacket (Active Directory), [OpenVAS](https://www.openvas.org).
+- **AI / LLM security** — prompt injection, jailbreaks, data leakage in your own models and agents. [Garak](https://github.com/NVIDIA/garak).
+- **Binary & artifact analysis** — known-vulnerable deps and unsafe patterns in compiled binaries. [Ghidra](https://ghidra-sre.org), [radare2](https://github.com/radareorg/radare2), [angr](https://github.com/angr/angr) (pairs with REA).
+- **Cloud posture · Smart contracts · Mobile · Fuzzing** — [Prowler](https://github.com/prowler-cloud/prowler) · [Slither](https://github.com/crytic/slither), Mythril, Echidna · [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) · [AFL++](https://github.com/AFLplusplus/AFLplusplus), libFuzzer, Jazzer.
 
 Full per-tool catalog and MCP contracts: [docs/mcp-tools.md](docs/mcp-tools.md). Every dynamic
 (traffic-sending) category is **off by default** and refuses any target not on your allowlist.

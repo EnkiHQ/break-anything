@@ -108,11 +108,14 @@ npx -y break-anything image my-svc:latest  # 容器镜像的 OS + 应用层 CVE
 
 ### 🧭 路线图
 
-- **静态代码(SAST)** — 注入、越权、反序列化、SSRF,带数据流。[Semgrep](https://semgrep.dev)、[CodeQL](https://codeql.github.com)、Bandit、gosec、Brakeman。
-- **基础设施(IaC)** — `apply` 前揪出公开桶、开放端口、过宽 IAM。[Checkov](https://www.checkov.io)、tfsec、Terrascan、KICS。
-- **运行应用(DAST)** — 对你授权的应用做 OWASP Top 10。[OWASP ZAP](https://www.zaproxy.org)、[Nuclei](https://github.com/projectdiscovery/nuclei)、sqlmap。
-- **API** — 越权(IDOR/BOLA)、认证绕过、批量赋值。[Schemathesis](https://github.com/schemathesis/schemathesis)。
-- **云配置 · 攻击面 · 智能合约 · 移动 · 模糊测试** — Prowler、Nmap + ProjectDiscovery、[Slither](https://github.com/crytic/slither)、[MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF)、[AFL++](https://github.com/AFLplusplus/AFLplusplus)。
+- **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF,带数据流证据。Semgrep、CodeQL、SonarQube CE、Bandit(Py)、gosec(Go)、Brakeman(Rails)、Find-Sec-Bugs(Java)、security-code-scan(.NET)、retire.js(前端 JS)。
+- **基础设施与 Kubernetes(IaC)** — `apply` 前揪出公开桶、开放端口、过宽 IAM、集群配置错误。[Checkov](https://www.checkov.io)、tfsec、Terrascan、[KICS](https://kics.io)、[Kubescape](https://github.com/kubescape/kubescape)、kube-bench、[Falco](https://falco.org)(运行时)。
+- **运行应用与攻击面(DAST)** — OWASP Top 10、目录/参数发现、XSS、注入,打你授权的应用。[OWASP ZAP](https://www.zaproxy.org)、[Nuclei](https://github.com/projectdiscovery/nuclei)、[Nikto](https://github.com/sullo/nikto)、[ffuf](https://github.com/ffuf/ffuf)、[Katana](https://github.com/projectdiscovery/katana)、[Dalfox](https://github.com/hahwul/dalfox)、[sqlmap](https://sqlmap.org);攻击面测绘用 [Nmap](https://nmap.org) + [Amass](https://github.com/owasp-amass/amass) + ProjectDiscovery。
+- **API** — 越权(IDOR/BOLA)、认证绕过、批量赋值(OWASP API Top 10)。[Schemathesis](https://github.com/schemathesis/schemathesis)、ZAP。
+- **进攻 / 漏洞利用** — *仅限授权渗透;默认关闭、需显式开启、须书面授权。* 在你拥有的目标上证明可利用性。[Metasploit](https://www.metasploit.com)、sqlmap、[Hydra](https://github.com/vanhauser-thc/thc-hydra)、[Hashcat](https://hashcat.net)、[BloodHound](https://github.com/SpecterOps/BloodHound) + Impacket(域渗透)、[OpenVAS](https://www.openvas.org)。
+- **AI / 大模型安全** — 对你自己的模型和 Agent 做提示注入、越狱、数据泄露检测。[Garak](https://github.com/NVIDIA/garak)。
+- **二进制与产物分析** — 编译二进制里的已知脆弱依赖和不安全模式。[Ghidra](https://ghidra-sre.org)、[radare2](https://github.com/radareorg/radare2)、[angr](https://github.com/angr/angr)(与 REA 互补)。
+- **云配置 · 智能合约 · 移动 · 模糊测试** — [Prowler](https://github.com/prowler-cloud/prowler) · [Slither](https://github.com/crytic/slither)、Mythril、Echidna · [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) · [AFL++](https://github.com/AFLplusplus/AFLplusplus)、libFuzzer、Jazzer。
 
 逐工具完整目录和 MCP 契约见 [docs/mcp-tools.md](../mcp-tools.md)。所有动态(发流量)类别**默认关闭**,拒绝任何不在白名单里的目标。
 

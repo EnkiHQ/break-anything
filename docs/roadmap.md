@@ -30,7 +30,10 @@ as the shipped scanners.
 - **API security** — Schemathesis (OpenAPI fuzzing) + auth-matrix prober for BOLA/IDOR, broken
   auth, mass assignment (OWASP API Top 10).
 - **Cloud posture (CSPM)** — Prowler / ScoutSuite against your own AWS/GCP/Azure accounts.
-- **Attack surface & recon** — Nmap + ProjectDiscovery suite over your own domains and hosts.
+- **Attack surface & recon** — Nmap + Amass + ProjectDiscovery (ffuf/Katana/Dalfox) over your own domains and hosts.
+- **Offensive / exploitation (authorized pentest)** — Metasploit, Hydra, Hashcat, BloodHound + Impacket, OpenVAS. Gated, off by default, written-permission-only; turns a "reachable" finding into a proven one.
+- **AI / LLM security** — Garak-backed prompt-injection, jailbreak, and data-leakage probes for your own models and agents.
+- **Binary & artifact analysis** — Ghidra / radare2 / angr for compiled binaries and firmware (pairs with REA).
 - **Smart contracts** — Slither / Mythril / Echidna for Solidity.
 - **Mobile** — MobSF for APK/IPA.
 - **Fuzzing** — AFL++ / libFuzzer / Jazzer / Atheris with minimized reproducers.

@@ -61,8 +61,8 @@ default** and refuse any target not on the authorization allowlist.
 
 | | |
 | --- | --- |
-| **Engines** | Checkov, tfsec, Terrascan, KICS, kube-score, kubesec, kube-bench |
-| **Targets** | Terraform, CloudFormation, Kubernetes/Helm, Dockerfile, ARM/Bicep |
+| **Engines** | Checkov, tfsec, Terrascan, KICS, Kubescape, kube-bench, kubesec, Falco (runtime) |
+| **Targets** | Terraform, CloudFormation, Kubernetes/Helm, Dockerfile, ARM/Bicep, Ansible |
 | **Finds** | public buckets, open security groups, missing encryption, over-broad IAM, privileged containers |
 | **Planned tool** | `iac_scan(path, framework?)` |
 
@@ -79,8 +79,8 @@ default** and refuse any target not on the authorization allowlist.
 
 | | |
 | --- | --- |
-| **Engines** | OWASP ZAP, Nuclei, Nikto, Wapiti, sqlmap |
-| **Finds** | OWASP Top 10, injection, XSS, SSRF, auth/session flaws, missing headers — with the triggering request |
+| **Engines** | OWASP ZAP, Nuclei, Nikto, Wapiti, sqlmap, ffuf, Katana, Dalfox, gobuster |
+| **Finds** | OWASP Top 10, injection, XSS, SSRF, auth/session flaws, missing headers, hidden content/params — with the triggering request |
 | **Planned tools** | `dast_scan(url, profile)`, `dast_nuclei(url, templates)` — **dynamic, off by default** |
 
 ## 🧭 API security — `api_scan`
@@ -95,8 +95,8 @@ default** and refuse any target not on the authorization allowlist.
 
 | | |
 | --- | --- |
-| **Engines** | Nmap, ProjectDiscovery suite (subfinder, httpx, naabu, dnsx) |
-| **Finds** | forgotten subdomains, exposed services, open ports, tech fingerprint |
+| **Engines** | Nmap, Amass (OWASP), ProjectDiscovery suite (subfinder, httpx, naabu, dnsx, katana) |
+| **Finds** | forgotten subdomains, exposed services, open ports, tech fingerprint, TLS/cert config (testssl.sh, sslyze) |
 | **Planned tool** | `recon(domain)` — **dynamic, off by default, your own assets only** |
 
 ## 🧭 Smart contracts (Web3) — `contract_scan`
@@ -124,6 +124,37 @@ default** and refuse any target not on the authorization allowlist.
 | **Finds** | crashes, memory-safety bugs, panics — with a minimized reproducer |
 | **Planned tool** | `fuzz(target, harness)` — **dynamic, off by default** |
 
+## 🧭 Offensive / exploitation (authorized pentest) — `exploit_*`
+
+| | |
+| --- | --- |
+| **Scope** | **Authorized targets only.** Gated, **off by default**, requires written permission and an allowlist. |
+| **Engines** | Metasploit Framework, sqlmap, Hydra, Hashcat, BloodHound + Impacket (Active Directory), OpenVAS/Greenbone |
+| **Finds** | confirmed exploitability — turns a "reachable" finding into a proven one on a target you own |
+| **Planned tools** | `exploit_confirm(finding)`, `exploit_ad_path`, `exploit_cred_spray` — **dynamic, off by default** |
+
+> This family exists so Break Anything can *prove* exploitability like a pentester, not so it can
+> attack strangers. Every tool here refuses targets outside your authorization allowlist, and the
+> project declines contributions that weaponize it against systems you don't control.
+
+## 🧭 AI / LLM security — `llm_scan`
+
+| | |
+| --- | --- |
+| **Engines** | [Garak](https://github.com/NVIDIA/garak), prompt-injection + jailbreak probes |
+| **Targets** | your own models, agents, and MCP tool surfaces |
+| **Finds** | prompt injection, jailbreaks, training-data/secret leakage, unsafe tool exposure |
+| **Planned tool** | `llm_scan(endpoint)` — **dynamic, off by default** |
+
+## 🧭 Binary & artifact analysis — `binary_scan`
+
+| | |
+| --- | --- |
+| **Engines** | Ghidra, radare2/rizin, angr (symbolic execution) |
+| **Targets** | compiled binaries, firmware, packaged apps |
+| **Finds** | known-vulnerable bundled deps, memory-safety smells, hardcoded secrets (pairs with the REA companion) |
+| **Planned tool** | `binary_scan(path)` |
+
 ## 🧭 Remediation & handoff — `fix_*`
 
 | | |
@@ -135,7 +166,8 @@ default** and refuse any target not on the authorization allowlist.
 
 ## Authorization gates
 
-Dynamic families (`dast_*`, `api_*`, `recon`, `cloud_audit`, `fuzz`) require both:
+Dynamic families (`dast_*`, `api_*`, `recon`, `cloud_audit`, `fuzz`, `exploit_*`, `llm_scan`)
+require both:
 
 ```bash
 export BRK_DYNAMIC_ENABLED=true

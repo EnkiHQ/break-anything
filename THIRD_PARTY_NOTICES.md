@@ -38,6 +38,14 @@ them. Licenses are listed for convenience; verify against each project before re
 | DAST | sqlmap | GPL-2.0 |
 | API | Schemathesis | MIT |
 | Recon | Nmap | Nmap Public Source License (NPSL) |
+| SAST | SonarQube CE · Find-Sec-Bugs · security-code-scan (.NET) · retire.js | LGPL / various |
+| IaC/K8s | Kubescape (ARMO) · Falco (CNCF) | Apache-2.0 |
+| Web/recon | ffuf · Katana · Dalfox · Amass (OWASP) · gobuster | MIT / Apache-2.0 |
+| Network/TLS | testssl.sh · sslyze · OpenVAS/Greenbone | GPL-2.0 / AGPL-3.0 |
+| Offensive (authorized) | Metasploit Framework (Rapid7) | BSD-3-Clause |
+| Offensive (authorized) | Hydra · Hashcat · BloodHound · Impacket | GPL / MIT |
+| LLM security | Garak (NVIDIA) | Apache-2.0 |
+| Binary | Ghidra (NSA) · radare2 · angr | Apache-2.0 / LGPL / BSD |
 | Web3 | Slither · Echidna (Trail of Bits) | AGPL-3.0 |
 | Web3 | Mythril (Consensys) | MIT |
 | Mobile | MobSF | GPL-3.0 |
