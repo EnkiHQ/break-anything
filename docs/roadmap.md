@@ -6,10 +6,11 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.8.0)
+## Shipped (0.9.0)
 
-- **Supply chain / dependencies (SCA)** — npm, Composer (PHP), pip; OSV lookup, two-tier
-  reachability (`called` > `imported`), EPSS, **CISA KEV (known-exploited)**, fix versions.
+- **Supply chain / dependencies (SCA)** — npm, PyPI, Composer (PHP), Go, Cargo (crates.io),
+  RubyGems; OSV lookup, two-tier reachability (`called` > `imported`), EPSS, **CISA KEV
+  (known-exploited)**, fix versions.
 - **Secrets** — working tree + git history, redacted output.
 - **Container images** — via Trivy.
 - **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,

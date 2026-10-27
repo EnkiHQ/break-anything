@@ -12,6 +12,19 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.9.0] - 2026-10-23
+
+### Added
+- **Three more dependency ecosystems** in `deps` (and therefore `fix`), all built-in:
+  - **Go** — `go.mod` (require blocks and single-line; `// indirect` is treated as transitive;
+    OSV ecosystem `Go`).
+  - **Rust** — `Cargo.lock` (`[[package]]` blocks), with direct deps read from `Cargo.toml`
+    (OSV ecosystem `crates.io`).
+  - **Ruby** — `Gemfile.lock` (`GEM/specs` as packages, `DEPENDENCIES` as direct; OSV ecosystem
+    `RubyGems`).
+  - Reachability now also walks `.go`, `.rs`, `.rb` sources (import-level).
+  - Parsers are pure and unit-tested. Shipped ecosystems: npm, PyPI, Composer, Go, Rust, Ruby.
+
 ## [0.8.0] - 2026-10-23
 
 ### Added
@@ -25,6 +38,14 @@ All notable changes to Break Anything are documented here. This project follows
   - Catalog is fetched once per run, cached, and degrades gracefully to "no KEV info" if unreachable.
 - `kev.js` with a pure, unit-tested catalog indexer (correctly distinguishes `Known` ransomware use
   from `Unknown`).
+- **Three more dependency ecosystems** for `deps` and `fix`, all via OSV with direct-dependency
+  detection, closing the gap between what the README advertised and what shipped:
+  - **Go** — `go.mod` (require block + single-line; `// indirect` → transitive; `v` prefix stripped).
+  - **Rust** — `Cargo.lock` (`[[package]]` blocks), with direct deps read from `Cargo.toml`.
+  - **Ruby** — `Gemfile.lock` (`GEM > specs:` for resolved gems, `DEPENDENCIES` for direct).
+  `deps` now covers npm, PyPI, Composer, Go, crates.io, and RubyGems.
+- Reachability now also scans `.go/.rs/.rb` sources (Go import paths resolve to `imported`;
+  symbol-call analysis remains JS/TS-only).
 
 ## [0.7.0] - 2026-10-23
 
@@ -127,7 +148,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/EnkiHQ/break-anything/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/EnkiHQ/break-anything/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/EnkiHQ/break-anything/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/EnkiHQ/break-anything/compare/v0.5.0...v0.6.0

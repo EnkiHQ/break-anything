@@ -4,7 +4,7 @@ Break Anything is one MCP interface over a deep arsenal of industry-standard sca
 MCP interface describes *what the agent wants to learn*; a provider decides *how* to answer. This
 page is the exhaustive catalog, organized by scan category.
 
-Legend: **✅ shipped (0.7.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
+Legend: **✅ shipped (0.8.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
 `api_scan`, `fix_plan`)** · **🧭 roadmap**. Dynamic (traffic-sending) tools are **off by default**
 and refuse any target not on the authorization allowlist.
 
@@ -17,8 +17,8 @@ and refuse any target not on the authorization allowlist.
 | **Status** | ✅ shipped |
 | **Primary engine** | OSV.dev query API (built-in, no install) |
 | **Additional engines** | Trivy, Grype, pip-audit, govulncheck, cargo-audit, bundler-audit, `composer audit`, OWASP Dependency-Check |
-| **Ecosystems** | npm, PyPI, Composer (PHP), Go, Maven/Gradle, Cargo, RubyGems, NuGet |
-| **Intel overlay** | EPSS (exploit probability), CISA KEV (known-exploited), GitHub Advisory |
+| **Ecosystems** | shipped: npm, PyPI, Composer (PHP), Go, crates.io (Rust), RubyGems · roadmap: Maven/Gradle, NuGet |
+| **Intel overlay** | ✅ CISA KEV (actively exploited), ✅ EPSS (exploit probability) · GitHub Advisory (roadmap) |
 | **SBOM** | Syft / CycloneDX generation + diff |
 | **Signal** | two-tier reachability: `called` (an imported symbol is invoked in your code) > `imported` > `direct` > `transitive`; call-path-to-vulnerable-symbol on the roadmap |
 | **MCP tool** | `deps_scan(path, reachability?)` |

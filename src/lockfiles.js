@@ -17,6 +17,15 @@ export async function loadLockfiles(targetPath) {
   const reqTxt = path.join(dir, "requirements.txt");
   if (await exists(reqTxt)) out.push(await parseRequirements(reqTxt));
 
+  const goMod = path.join(dir, "go.mod");
+  if (await exists(goMod)) out.push(await parseGoModFile(goMod));
+
+  const cargoLock = path.join(dir, "Cargo.lock");
+  if (await exists(cargoLock)) out.push(await parseCargoLockFile(cargoLock, dir));
+
+  const gemLock = path.join(dir, "Gemfile.lock");
+  if (await exists(gemLock)) out.push(await parseGemfileLockFile(gemLock));
+
   return { dir, sources: out.filter(Boolean) };
 }
 
@@ -115,4 +124,120 @@ async function parseRequirements(file) {
     if (m) packages.push({ name: m[1], version: m[2], ecosystem: "PyPI", direct: true });
   }
   return { ecosystem: "PyPI", file, packages, manifestDirect: new Set(packages.map((p) => p.name)) };
+}
+
+// ---- Go: go.mod(require 块 / 单行 require;// indirect 视为传递依赖)----
+// 纯函数,可单测。OSV 的 Go 生态版本不带前导 v,这里统一去掉。
+export function parseGoModText(text) {
+  const packages = [];
+  const direct = new Set();
+  const seen = new Set();
+  let inBlock = false;
+  for (const raw of text.split(/\r?\n/)) {
+    const indirect = /\/\/\s*indirect/.test(raw);
+    const line = raw.replace(/\/\/.*$/, "").trim();
+    if (/^require\s*\($/.test(line)) { inBlock = true; continue; }
+    if (inBlock && line === ")") { inBlock = false; continue; }
+    const m = inBlock
+      ? line.match(/^(\S+)\s+v(\S+)/)
+      : line.match(/^require\s+(\S+)\s+v(\S+)/);
+    if (m) {
+      const name = m[1];
+      const version = m[2];
+      const key = `${name}@${version}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      packages.push({ name, version });
+      if (!indirect) direct.add(name);
+    }
+  }
+  return { packages, direct };
+}
+
+async function parseGoModFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages, direct } = parseGoModText(text);
+  return {
+    ecosystem: "Go",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "Go", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
+}
+
+// ---- Rust: Cargo.lock([[package]] 块);直接依赖取自 Cargo.toml ----
+export function parseCargoLockText(text) {
+  const packages = [];
+  const blocks = text.split(/\[\[package\]\]/).slice(1);
+  for (const b of blocks) {
+    const name = (b.match(/\bname\s*=\s*"([^"]+)"/) || [])[1];
+    const version = (b.match(/\bversion\s*=\s*"([^"]+)"/) || [])[1];
+    if (name && version) packages.push({ name, version });
+  }
+  return { packages };
+}
+
+// 从 Cargo.toml 的 [dependencies]/[dev-dependencies]/[build-dependencies] 抽直接依赖名
+export function parseCargoTomlDirect(text) {
+  const set = new Set();
+  let inDeps = false;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, "").trim();
+    const sec = line.match(/^\[([^\]]+)\]$/);
+    if (sec) { inDeps = /(^|\.)(dependencies|dev-dependencies|build-dependencies)$/.test(sec[1]); continue; }
+    if (inDeps) {
+      const m = line.match(/^([A-Za-z0-9_-]+)\s*=/);
+      if (m) set.add(m[1]);
+    }
+  }
+  return set;
+}
+
+async function parseCargoLockFile(file, dir) {
+  const text = await readFile(file, "utf8");
+  const { packages } = parseCargoLockText(text);
+  let direct = new Set();
+  const cargoToml = path.join(dir, "Cargo.toml");
+  if (await exists(cargoToml)) {
+    try { direct = parseCargoTomlDirect(await readFile(cargoToml, "utf8")); } catch { /* 忽略 */ }
+  }
+  return {
+    ecosystem: "crates.io",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "crates.io", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
+}
+
+// ---- Ruby: Gemfile.lock(GEM > specs: 为解析出的包;DEPENDENCIES 为直接依赖)----
+export function parseGemfileLockText(text) {
+  const packages = [];
+  const direct = new Set();
+  const seen = new Set();
+  let section = null;
+  for (const raw of text.split(/\r?\n/)) {
+    if (/^[A-Za-z]/.test(raw)) { section = raw.trim(); continue; }
+    if (section === "GEM" || section === "GIT" || section === "PATH") {
+      const m = raw.match(/^ {4}([A-Za-z0-9._-]+) \(([^()]+)\)\s*$/);
+      if (m) {
+        const key = `${m[1]}@${m[2]}`;
+        if (!seen.has(key)) { seen.add(key); packages.push({ name: m[1], version: m[2] }); }
+      }
+    } else if (section === "DEPENDENCIES") {
+      const m = raw.match(/^ {2}([A-Za-z0-9._-]+)/);
+      if (m) direct.add(m[1]);
+    }
+  }
+  return { packages, direct };
+}
+
+async function parseGemfileLockFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages, direct } = parseGemfileLockText(text);
+  return {
+    ecosystem: "RubyGems",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "RubyGems", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
 }

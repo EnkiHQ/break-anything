@@ -2,13 +2,13 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.8.0";
+const VERSION = "0.9.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
 
 用法:
-  brk deps [path]        扫描依赖 lockfile 的已知漏洞(默认当前目录)
+  brk deps [path]        扫描依赖的已知漏洞(npm/PHP/Python/Go/Rust/Ruby lockfile,默认当前目录)
   brk secrets [path]     扫描泄露的密钥(工作区,--history 加扫 git 历史)
   brk image <ref>        扫描容器镜像的已知漏洞(需 trivy)
   brk sast [path]        静态代码分析找漏洞(需 semgrep)
