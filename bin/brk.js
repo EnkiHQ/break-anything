@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.10.0";
+const VERSION = "0.11.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -15,6 +15,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk iac [path]         扫描 IaC 错误配置(Dockerfile/Kubernetes/Terraform,内置,免安装)
   brk api <baseUrl>      对运行中的 API 做越权(IDOR)/鉴权检测(动态,默认关闭,需授权)
   brk fix [path]         把依赖扫描结果变成按优先级排序的修复计划(含升级命令)
+  brk sbom [path]        生成 CycloneDX SBOM(--out 写文件,--diff 旧SBOM 比对变更)
   brk mcp                以 MCP server 模式启动(供 Agent 调用)
   brk doctor             检查运行环境与网络连通性
   brk setup              自动把 Break Anything 注册进本机各家 Agent(--dry-run 预演,--print 仅打印配置)
@@ -33,7 +34,7 @@ secrets 选项:
 `;
 
 // 这些 flag 接受一个值,支持 --key=value 与 --key value 两种写法
-const VALUE_FLAGS = new Set(["config", "top", "from"]);
+const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out"]);
 
 function parseFlags(argv) {
   const flags = {};
@@ -215,6 +216,37 @@ async function main() {
       process.stdout.write(renderFix(result, { color }) + "\n");
     }
     process.exitCode = result.summary?.upgradeCount || result.summary?.noFixCount ? 1 : 0;
+    return;
+  }
+
+  if (cmd === "sbom") {
+    const { flags, positional } = parseFlags(rest);
+    const target = positional[0] || process.cwd();
+    const { generateSbom, diffSbom } = await import("../src/sbom.js");
+    const { renderSbomDiff } = await import("../src/report.js");
+    const res = await generateSbom(target);
+    if (!res.ok) { process.stderr.write(res.message + "\n"); process.exitCode = 2; return; }
+
+    if (flags.diff) {
+      const fs = await import("node:fs/promises");
+      let oldBom;
+      try { oldBom = JSON.parse(await fs.readFile(flags.diff, "utf8")); }
+      catch (e) { process.stderr.write(`读取 --diff 失败:${e instanceof Error ? e.message : e}\n`); process.exitCode = 2; return; }
+      const d = diffSbom(oldBom, res.bom);
+      if (flags.json) process.stdout.write(JSON.stringify(d, null, 2) + "\n");
+      else { const color = flags.color !== false && process.stdout.isTTY; process.stdout.write(renderSbomDiff(d, { color }) + "\n"); }
+      process.exitCode = d.summary.added || d.summary.removed || d.summary.changed ? 1 : 0;
+      return;
+    }
+
+    const json = JSON.stringify(res.bom, null, 2);
+    if (flags.out) {
+      const fs = await import("node:fs/promises");
+      await fs.writeFile(flags.out, json + "\n");
+      process.stderr.write(`已写入 ${res.componentCount} 个组件的 CycloneDX SBOM → ${flags.out}\n`);
+    } else {
+      process.stdout.write(json + "\n");
+    }
     return;
   }
 

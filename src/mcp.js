@@ -8,6 +8,7 @@ import { scanSast } from "./sast.js";
 import { scanApi } from "./api.js";
 import { scanIac } from "./iac.js";
 import { fixDependencies } from "./fix.js";
+import { generateSbom } from "./sbom.js";
 
 const TOOLS = [
   {
@@ -79,6 +80,20 @@ const TOOLS = [
     },
   },
   {
+    name: "sbom_generate",
+    description:
+      "Generate a CycloneDX 1.5 SBOM (software bill of materials) for a project across all supported " +
+      "ecosystems (npm, PyPI, Composer, Go, Rust, Ruby, Maven, NuGet). Each component has a package " +
+      "URL (purl). Pure, local, no network. Use it to archive, audit, or diff dependency composition.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Absolute path to the project to generate an SBOM for." },
+      },
+      required: ["path"],
+    },
+  },
+  {
     name: "fix_plan",
     description:
       "Turn dependency findings into a prioritized, actionable remediation plan. Scans the project " +
@@ -140,7 +155,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.10.0" },
+    { name: "break-anything", version: "0.11.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -168,6 +183,9 @@ export async function startMcpServer() {
       } else if (name === "fix_plan") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await fixDependencies(args.path, { reachability: args.reachability !== false });
+      } else if (name === "sbom_generate") {
+        if (!strArg(args.path)) return bad("缺少必填参数 path。");
+        result = await generateSbom(args.path);
       } else if (name === "api_scan") {
         if (!strArg(args.baseUrl)) return bad("缺少必填参数 baseUrl。");
         result = await scanApi({ baseUrl: args.baseUrl, accounts: args.accounts || {}, idorPaths: args.idorPaths || [] });

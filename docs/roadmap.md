@@ -6,7 +6,7 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.10.0)
+## Shipped (0.11.0)
 
 - **Supply chain / dependencies (SCA)** — npm, PyPI, Composer (PHP), Go, Rust (crates.io),
   Ruby (RubyGems), Maven (Java), NuGet (.NET); OSV lookup, two-tier reachability (`called` >
@@ -51,8 +51,8 @@ as the shipped scanners.
 - **Self-remediation (deeper)** — `fix` ships today for dependency upgrade planning; next is
   generating patches, pins, and compatibility shims when upstream has no fix, with a deep handoff to
   [Patch Anything](https://github.com/EnkiHQ/patch-anything) for a merge-ready PR.
-- **SBOM & evidence bundles** — generate/diff SBOMs (Syft) and portable, reproducible finding
-  records that survive across sessions and gate CI.
+- **Evidence bundles** — portable, reproducible finding records that survive across sessions and
+  gate CI (CycloneDX SBOM generation + diff already shipped via `sbom`).
 
 ## Principles
 

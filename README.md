@@ -79,6 +79,7 @@ npx -y break-anything sast ./src           # static code analysis (injection, au
 npx -y break-anything iac ./deploy         # IaC misconfigs (Dockerfile/K8s/Terraform) — no install
 npx -y break-anything api http://localhost:4000 --config accounts.json  # IDOR/authz on a running API (authorized)
 npx -y break-anything fix ./             # turn the dep findings into a prioritized upgrade plan
+npx -y break-anything sbom ./ --out bom.json  # CycloneDX SBOM; --diff old.json to gate drift in CI
 ```
 
 ## Why it's different

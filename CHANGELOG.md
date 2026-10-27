@@ -12,6 +12,18 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.11.0] - 2026-10-23
+
+### Added
+- `sbom` — generate a standard **CycloneDX 1.5** SBOM (software bill of materials) across all eight
+  supported ecosystems, each component with a package URL (purl). Pure, local, no network.
+  - `brk sbom [path]` prints the SBOM JSON (pipeable); `--out <file>` writes it to a file.
+  - `brk sbom [path] --diff <old.json>` compares current composition against a previous SBOM and
+    reports added / removed / version-changed components, exiting non-zero on any change — built for
+    CI drift gates.
+- `sbom_generate` MCP tool.
+- Pure, unit-tested `purlFor` / `buildSbom` (dedup + deterministic sort) / `diffSbom`.
+
 ## [0.10.0] - 2026-10-23
 
 ### Added
@@ -160,7 +172,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/EnkiHQ/break-anything/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/EnkiHQ/break-anything/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/EnkiHQ/break-anything/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/EnkiHQ/break-anything/compare/v0.7.0...v0.8.0

@@ -389,3 +389,23 @@ export function renderFix(result, { color = true } = {}) {
 function reachName(rank) {
   return { 4: "called", 3: "imported", 2: "direct", 1: "transitive" }[rank] || "unknown";
 }
+
+// ---- SBOM diff ----
+export function renderSbomDiff(d, { color = true } = {}) {
+  const c = palette(color);
+  const zh = LANG === "zh";
+  const lines = [];
+  lines.push(`${c.bold}Break Anything · ${zh ? "SBOM 变更比对" : "SBOM diff"}${c.reset}`);
+  lines.push("");
+  const s = d.summary;
+  if (!s.added && !s.removed && !s.changed) {
+    lines.push(`${c.green}${zh ? "✓ 依赖组成无变化。" : "✓ No dependency changes."}${c.reset}`);
+    return lines.join("\n");
+  }
+  for (const a of d.added) lines.push(`${c.green}+ ${zh ? "新增" : "added  "} ${a.name}@${a.version}${c.reset}`);
+  for (const r of d.removed) lines.push(`${c.red}- ${zh ? "移除" : "removed"} ${r.name}@${r.version}${c.reset}`);
+  for (const ch of d.changed) lines.push(`${c.yellow}~ ${zh ? "变更" : "changed"} ${ch.name} ${ch.from} ${c.gray}→${c.reset}${c.yellow} ${ch.to}${c.reset}`);
+  lines.push("");
+  lines.push(`${c.bold}${zh ? "小结" : "summary"}${c.reset} ${zh ? "新增" : "added"} ${s.added}  ·  ${zh ? "移除" : "removed"} ${s.removed}  ·  ${zh ? "变更" : "changed"} ${s.changed}`);
+  return lines.join("\n");
+}

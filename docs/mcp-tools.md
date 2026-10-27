@@ -4,9 +4,9 @@ Break Anything is one MCP interface over a deep arsenal of industry-standard sca
 MCP interface describes *what the agent wants to learn*; a provider decides *how* to answer. This
 page is the exhaustive catalog, organized by scan category.
 
-Legend: **✅ shipped (0.8.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
-`api_scan`, `fix_plan`)** · **🧭 roadmap**. Dynamic (traffic-sending) tools are **off by default**
-and refuse any target not on the authorization allowlist.
+Legend: **✅ shipped (`deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
+`api_scan`, `fix_plan`, `sbom_generate`)** · **🧭 roadmap**. Dynamic (traffic-sending) tools are
+**off by default** and refuse any target not on the authorization allowlist.
 
 ---
 
@@ -19,7 +19,7 @@ and refuse any target not on the authorization allowlist.
 | **Additional engines** | Trivy, Grype, pip-audit, govulncheck, cargo-audit, bundler-audit, `composer audit`, OWASP Dependency-Check |
 | **Ecosystems** | shipped: npm, PyPI, Composer (PHP), Go, crates.io (Rust), RubyGems, Maven (Java), NuGet (.NET) · roadmap: Gradle lockfile, full Maven transitive resolution |
 | **Intel overlay** | ✅ CISA KEV (actively exploited), ✅ EPSS (exploit probability) · GitHub Advisory (roadmap) |
-| **SBOM** | Syft / CycloneDX generation + diff |
+| **SBOM** | ✅ CycloneDX 1.5 generation + diff via `sbom` / `sbom_generate` (`brk sbom <path> [--out f] [--diff old.json]`) |
 | **Signal** | two-tier reachability: `called` (an imported symbol is invoked in your code) > `imported` > `direct` > `transitive`; call-path-to-vulnerable-symbol on the roadmap |
 | **MCP tool** | `deps_scan(path, reachability?)` |
 | **CLI** | `brk deps <path> [--json] [--no-reachability]` |

@@ -63,6 +63,7 @@ npx -y break-anything sast ./src           # 静态代码分析(注入、越权�
 npx -y break-anything iac ./deploy         # IaC 错误配置(Dockerfile/K8s/Terraform)——免安装
 npx -y break-anything api http://localhost:4000 --config accounts.json  # 运行中 API 的越权/鉴权检测(需授权)
 npx -y break-anything fix ./             # 把依赖发现变成按优先级排序的升级计划
+npx -y break-anything sbom ./ --out bom.json  # 生成 CycloneDX SBOM;--diff 旧SBOM 在 CI 里卡依赖漂移
 ```
 
 ## 凭什么不一样

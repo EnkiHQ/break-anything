@@ -561,3 +561,56 @@ test("parseNugetLock:坏输入不抛异常", () => {
   assert.deepEqual(parseNugetLock("not json").packages, []);
   assert.deepEqual(parseNugetLock({}).packages, []);
 });
+
+// ---- SBOM(CycloneDX)生成与比对(纯函数)----
+import { purlFor, buildSbom, diffSbom } from "../src/sbom.js";
+
+test("purlFor:各生态的 package URL", () => {
+  assert.equal(purlFor("npm", "lodash", "4.17.4"), "pkg:npm/lodash@4.17.4");
+  assert.equal(purlFor("npm", "@babel/core", "7.0.0"), "pkg:npm/%40babel/core@7.0.0");
+  assert.equal(purlFor("PyPI", "Flask_Thing", "1.0"), "pkg:pypi/flask-thing@1.0");
+  assert.equal(purlFor("Packagist", "monolog/monolog", "2.0"), "pkg:composer/monolog/monolog@2.0");
+  assert.equal(purlFor("Go", "github.com/gin-gonic/gin", "1.6.0"), "pkg:golang/github.com/gin-gonic/gin@1.6.0");
+  assert.equal(purlFor("crates.io", "time", "0.1.44"), "pkg:cargo/time@0.1.44");
+  assert.equal(purlFor("RubyGems", "rack", "2.0.5"), "pkg:gem/rack@2.0.5");
+  assert.equal(purlFor("Maven", "com.fasterxml.jackson.core:jackson-databind", "2.9.8"), "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.9.8");
+  assert.equal(purlFor("NuGet", "Newtonsoft.Json", "12.0.1"), "pkg:nuget/Newtonsoft.Json@12.0.1");
+});
+
+test("buildSbom:CycloneDX 结构、去重、排序", () => {
+  const sources = [
+    { ecosystem: "npm", packages: [
+      { name: "lodash", version: "4.17.4", ecosystem: "npm", direct: true },
+      { name: "lodash", version: "4.17.4", ecosystem: "npm", direct: true }, // 重复
+      { name: "minimist", version: "1.2.0", ecosystem: "npm", direct: false },
+    ] },
+  ];
+  const bom = buildSbom(sources, { name: "demo", now: "2026-01-01T00:00:00Z", serialNumber: "urn:uuid:fixed" });
+  assert.equal(bom.bomFormat, "CycloneDX");
+  assert.equal(bom.specVersion, "1.5");
+  assert.equal(bom.serialNumber, "urn:uuid:fixed");
+  assert.equal(bom.components.length, 2); // 去重
+  assert.equal(bom.components[0].purl, "pkg:npm/lodash@4.17.4");
+  assert.equal(bom.metadata.component.name, "demo");
+  // 传递依赖标注 scope=optional
+  const mm = bom.components.find((c) => c.name === "minimist");
+  assert.equal(mm.scope, "optional");
+});
+
+test("diffSbom:新增 / 移除 / 版本变化", () => {
+  const oldBom = buildSbom([{ ecosystem: "npm", packages: [
+    { name: "lodash", version: "4.17.4", ecosystem: "npm", direct: true },
+    { name: "left-pad", version: "1.0.0", ecosystem: "npm", direct: true },
+  ] }], { serialNumber: "urn:uuid:a", now: "x" });
+  const newBom = buildSbom([{ ecosystem: "npm", packages: [
+    { name: "lodash", version: "4.17.21", ecosystem: "npm", direct: true }, // 变更
+    { name: "express", version: "4.18.0", ecosystem: "npm", direct: true }, // 新增
+  ] }], { serialNumber: "urn:uuid:b", now: "y" });
+  const d = diffSbom(oldBom, newBom);
+  assert.deepEqual(d.summary, { added: 1, removed: 1, changed: 1 });
+  assert.equal(d.added[0].name, "express");
+  assert.equal(d.removed[0].name, "left-pad");
+  assert.equal(d.changed[0].name, "lodash");
+  assert.equal(d.changed[0].from, "4.17.4");
+  assert.equal(d.changed[0].to, "4.17.21");
+});
