@@ -136,7 +136,7 @@ already run in real pipelines. ✅ shipped in 0.7.0 · 🧭 on the roadmap.
 
 ### ✅ Shipped today
 
-- **Dependencies (SCA)** — known CVEs across your whole tree, ranked by reachability + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (known-exploited) + EPSS, with fix versions. Engines: [OSV](https://osv.dev), [Trivy](https://github.com/aquasecurity/trivy), [Grype](https://github.com/anchore/grype), `pip-audit`, `govulncheck`, `composer audit`. Ecosystems: npm, PyPI, Composer, Go, Maven, Cargo, RubyGems, NuGet.
+- **Dependencies (SCA)** — known CVEs across your whole tree, ranked by reachability + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (known-exploited) + EPSS, with fix versions. Engines: [OSV](https://osv.dev), [Trivy](https://github.com/aquasecurity/trivy), [Grype](https://github.com/anchore/grype), `pip-audit`, `govulncheck`, `composer audit`. Ecosystems shipped: npm, PyPI, Composer, Go, Cargo (crates.io), RubyGems; Maven/NuGet on the roadmap.
 - **Secrets** — leaked keys/tokens/private keys in the working tree and full git history, redacted. Engines: [Gitleaks](https://github.com/gitleaks/gitleaks), [TruffleHog](https://github.com/trufflesecurity/trufflehog).
 - **Container images** — OS + app CVEs, Dockerfile smells, secrets in layers. Engines: [Trivy](https://github.com/aquasecurity/trivy), [Grype](https://github.com/anchore/grype), [Hadolint](https://github.com/hadolint/hadolint).
 - **Static code (SAST)** — injection, broken access control, insecure deserialization, SSRF, hardcoded secrets — each with file/line, CWE/OWASP tags, and the offending snippet. Engine: [Semgrep](https://semgrep.dev).
