@@ -614,3 +614,68 @@ test("diffSbom:新增 / 移除 / 版本变化", () => {
   assert.equal(d.changed[0].from, "4.17.4");
   assert.equal(d.changed[0].to, "4.17.21");
 });
+
+// ---- SARIF 2.1.0 输出(纯函数)----
+import { toSarif, buildSarif, splitLocation } from "../src/sarif.js";
+
+test("splitLocation:拆分 file:line 并相对化", () => {
+  assert.deepEqual(splitLocation("src/app.js:42"), { uri: "src/app.js", line: 42 });
+  assert.deepEqual(splitLocation("/root/proj/src/a.py:7", "/root/proj"), { uri: "src/a.py", line: 7 });
+  assert.deepEqual(splitLocation("Dockerfile"), { uri: "Dockerfile", line: undefined });
+});
+
+test("buildSarif:结构、规则去重、severity→level 映射", () => {
+  const sarif = buildSarif([
+    { ruleId: "R1", name: "r1", level: "error", securitySeverity: "8.0", message: "m1", locations: [{ uri: "a.js", line: 3 }] },
+    { ruleId: "R1", name: "r1", level: "error", message: "m2", locations: [{ uri: "b.js", line: 5 }] },
+    { ruleId: "R2", name: "r2", level: "warning", message: "m3", locations: [{ uri: "c.js" }] },
+  ]);
+  assert.equal(sarif.version, "2.1.0");
+  assert.equal(sarif.runs[0].tool.driver.name, "break-anything");
+  assert.equal(sarif.runs[0].tool.driver.rules.length, 2); // R1 去重
+  assert.equal(sarif.runs[0].results.length, 3);
+  assert.equal(sarif.runs[0].results[0].level, "error");
+  assert.equal(sarif.runs[0].results[0].locations[0].physicalLocation.region.startLine, 3);
+  // 无 line 的不带 region
+  assert.equal(sarif.runs[0].results[2].locations[0].physicalLocation.region, undefined);
+  // security-severity 落到规则 properties
+  const r1 = sarif.runs[0].tool.driver.rules.find((r) => r.id === "R1");
+  assert.equal(r1.properties["security-severity"], "8.0");
+});
+
+test("toSarif:deps 发现 → 以 lockfile 为位置,CVE 为 ruleId", () => {
+  const result = {
+    target: "/proj",
+    sources: [{ ecosystem: "npm", file: "/proj/package-lock.json", packages: 1 }],
+    findings: [
+      { package: "lodash", version: "4.17.4", ecosystem: "npm", severity: "HIGH", cve: "CVE-2021-23337", reachability: "called", epss: 0.21, kev: false, fixedVersions: ["4.17.21"], summary: "cmd injection" },
+    ],
+  };
+  const sarif = toSarif("deps", result);
+  const res = sarif.runs[0].results[0];
+  assert.equal(res.ruleId, "CVE-2021-23337");
+  assert.equal(res.level, "error");
+  assert.equal(res.locations[0].physicalLocation.artifactLocation.uri, "package-lock.json"); // 相对化
+  assert.equal(res.properties.reachability, "called");
+});
+
+test("toSarif:sast / iac / secrets 映射到正确位置与 level", () => {
+  const sast = toSarif("sast", { target: "/p", findings: [
+    { id: "js.xss", rule: "xss", severity: "HIGH", location: "/p/src/app.js:10", message: "XSS", cwe: ["CWE-79"], owasp: [], references: ["https://x"] },
+  ] });
+  assert.equal(sast.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri, "src/app.js");
+  assert.equal(sast.runs[0].results[0].locations[0].physicalLocation.region.startLine, 10);
+
+  const iac = toSarif("iac", { target: "/p", findings: [
+    { kind: "dockerfile", rule: "docker-no-user", severity: "MEDIUM", title: "runs as root", location: "Dockerfile:1", cwe: "CWE-250", remediation: "add USER" },
+  ] });
+  assert.equal(iac.runs[0].results[0].level, "warning");
+  assert.match(iac.runs[0].results[0].message.text, /add USER/);
+
+  const secrets = toSarif("secrets", { findings: [
+    { rule: "aws-access-key-id", severity: "HIGH", source: "worktree", location: "config.js", line: 3 },
+    { rule: "github-token", severity: "HIGH", source: "history", commit: "abc123" },
+  ] });
+  assert.equal(secrets.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri, "config.js");
+  assert.match(secrets.runs[0].results[1].locations[0].physicalLocation.artifactLocation.uri, /git-history@abc123/);
+});

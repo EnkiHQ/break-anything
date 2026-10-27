@@ -12,6 +12,17 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.12.0] - 2026-10-23
+
+### Added
+- **SARIF 2.1.0 output** via `--sarif` on `deps`, `sast`, `iac`, and `secrets`. This is the standard
+  static-analysis interchange format — pipe it to GitHub Code Scanning (`upload-sarif`), GitLab, or
+  an IDE security panel, and findings show up inline on the exact file/line.
+  - Severity maps to SARIF `level` (error/warning/note) and GitHub `security-severity` (9.5/8/5/2).
+  - deps results anchor to the lockfile; sast/iac/secrets anchor to file:line; git-history secrets
+    get a `git-history@<commit>` location. Absolute paths are relativized to the project root.
+- Pure, unit-tested `buildSarif` / `splitLocation` / `toSarif` (52 tests total).
+
 ## [0.11.0] - 2026-10-23
 
 ### Added
@@ -172,7 +183,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/EnkiHQ/break-anything/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/EnkiHQ/break-anything/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/EnkiHQ/break-anything/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/EnkiHQ/break-anything/compare/v0.8.0...v0.9.0

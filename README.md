@@ -80,6 +80,7 @@ npx -y break-anything iac ./deploy         # IaC misconfigs (Dockerfile/K8s/Terr
 npx -y break-anything api http://localhost:4000 --config accounts.json  # IDOR/authz on a running API (authorized)
 npx -y break-anything fix ./             # turn the dep findings into a prioritized upgrade plan
 npx -y break-anything sbom ./ --out bom.json  # CycloneDX SBOM; --diff old.json to gate drift in CI
+npx -y break-anything sast ./src --sarif > results.sarif  # SARIF 2.1.0 for GitHub code scanning
 ```
 
 ## Why it's different

@@ -64,6 +64,7 @@ npx -y break-anything iac ./deploy         # IaC 错误配置(Dockerfile/K8s/Ter
 npx -y break-anything api http://localhost:4000 --config accounts.json  # 运行中 API 的越权/鉴权检测(需授权)
 npx -y break-anything fix ./             # 把依赖发现变成按优先级排序的升级计划
 npx -y break-anything sbom ./ --out bom.json  # 生成 CycloneDX SBOM;--diff 旧SBOM 在 CI 里卡依赖漂移
+npx -y break-anything sast ./src --sarif > results.sarif  # 输出 SARIF 2.1.0,喂给 GitHub 代码扫描
 ```
 
 ## 凭什么不一样

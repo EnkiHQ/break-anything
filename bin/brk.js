@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.11.0";
+const VERSION = "0.12.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -24,6 +24,7 @@ const HELP = `Break Anything (brk) v${VERSION}
 
 通用选项:
   --json                 输出 JSON(用于脚本 / Agent)
+  --sarif                输出 SARIF 2.1.0(deps/sast/iac/secrets,喂给 GitHub 代码扫描)
   --no-color             关闭彩色输出
 deps 选项:
   --no-reachability      跳过源码可达性初判
@@ -81,7 +82,10 @@ async function main() {
     const result = await scanDependencies(target, {
       reachability: flags.reachability !== false,
     });
-    if (flags.json) {
+    if (flags.sarif) {
+      const { toSarif } = await import("../src/sarif.js");
+      process.stdout.write(JSON.stringify(toSarif("deps", result), null, 2) + "\n");
+    } else if (flags.json) {
       process.stdout.write(JSON.stringify(result, null, 2) + "\n");
     } else {
       const color = flags.color !== false && process.stdout.isTTY;
@@ -101,7 +105,10 @@ async function main() {
     const { scanSecrets } = await import("../src/secrets.js");
     const { renderSecrets } = await import("../src/report.js");
     const result = await scanSecrets(target, { history: !!flags.history });
-    if (flags.json) {
+    if (flags.sarif) {
+      const { toSarif } = await import("../src/sarif.js");
+      process.stdout.write(JSON.stringify(toSarif("secrets", result), null, 2) + "\n");
+    } else if (flags.json) {
       process.stdout.write(JSON.stringify(result, null, 2) + "\n");
     } else {
       const color = flags.color !== false && process.stdout.isTTY;
@@ -139,7 +146,10 @@ async function main() {
     const { scanSast } = await import("../src/sast.js");
     const { renderSast } = await import("../src/report.js");
     const result = await scanSast(target, flags.config ? { config: flags.config } : {});
-    if (flags.json) {
+    if (flags.sarif) {
+      const { toSarif } = await import("../src/sarif.js");
+      process.stdout.write(JSON.stringify(toSarif("sast", result), null, 2) + "\n");
+    } else if (flags.json) {
       process.stdout.write(JSON.stringify(result, null, 2) + "\n");
     } else {
       const color = flags.color !== false && process.stdout.isTTY;
@@ -156,7 +166,10 @@ async function main() {
     const { scanIac } = await import("../src/iac.js");
     const { renderIac } = await import("../src/report.js");
     const result = await scanIac(target);
-    if (flags.json) {
+    if (flags.sarif) {
+      const { toSarif } = await import("../src/sarif.js");
+      process.stdout.write(JSON.stringify(toSarif("iac", result), null, 2) + "\n");
+    } else if (flags.json) {
       process.stdout.write(JSON.stringify(result, null, 2) + "\n");
     } else {
       const color = flags.color !== false && process.stdout.isTTY;
