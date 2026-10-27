@@ -21,5 +21,20 @@ jobs:
         run: npm ci || npm install
       - name: CLI smoke test
         run: node bin/brk.js --version
-      - name: Unit tests
+      - name: Unit + integration tests
         run: node --test
+      - name: CLI integration (offline, exercises the real binary)
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          printf 'FROM python:latest\nENV API_KEY=supersecret123\nCMD ["python","app.py"]\n' > "$tmp/Dockerfile"
+          # 发现问题时命令会以非零码退出(CI 门禁语义),用 || true 容忍,再对结构化输出断言
+          out="$(node bin/brk.js iac "$tmp" --json  || true)"; echo "$out" | grep -q '"rule": "docker-hardcoded-secret"'
+          out="$(node bin/brk.js iac "$tmp" --sarif || true)"; echo "$out" | grep -q '"version": "2.1.0"'
+          echo "$out" | grep -q '"ruleId": "docker-hardcoded-secret"'
+          printf '{"name":"x","version":"1.0.0","lockfileVersion":3,"packages":{"":{"name":"x","version":"1.0.0"},"node_modules/lodash":{"version":"4.17.4"}}}' > "$tmp/package-lock.json"
+          out="$(node bin/brk.js sbom "$tmp" || true)"; echo "$out" | grep -q '"bomFormat": "CycloneDX"'
+          printf 'aws_key = AKIAIOSFODNN7EXAMPLE\n' > "$tmp/creds.txt"
+          out="$(node bin/brk.js secrets "$tmp" --json || true)"; echo "$out" | grep -q '"rule": "aws-access-key-id"'
+          rm -rf "$tmp"
+          echo "offline CLI integration OK"

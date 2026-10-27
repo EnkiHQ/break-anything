@@ -27,6 +27,9 @@ jobs:
       - name: Sanity check (CLI 能跑起来)
         run: node bin/brk.js --version
 
+      - name: Tests (unit + integration) — 发布门禁
+        run: node --test
+
       - name: Publish
         run: npm publish --access public
         env:
