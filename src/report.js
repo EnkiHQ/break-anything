@@ -43,6 +43,13 @@ const T = {
     iacTitle: "Break Anything · infrastructure-as-code scan",
     iacClean: "✓ No misconfigurations found by the IaC rules.",
     iacScanned: (n, t) => `${n} IaC files scanned${t ? `  ·  ${t}` : ""}`,
+    fixTitle: "Break Anything · fix plan",
+    fixClean: "✓ Nothing to fix — no vulnerable dependencies found.",
+    fixHead: (u, v) => `${u} package${u === 1 ? "" : "s"} to upgrade  ·  resolves ${v} ${v === 1 ? "vulnerability" : "vulnerabilities"}`,
+    fixResolves: (n) => `resolves ${n} ${n === 1 ? "CVE" : "CVEs"}`,
+    fixNoFixHead: "No upstream fix available",
+    fixNoFixHint: "Pin and mitigate, or move to a maintained fork. Hand these to Patch Anything.",
+    fixValidate: "Upgrade targets are minimal safe-version suggestions — validate with your tests.",
   },
   zh: {
     depsTitle: "Break Anything · 依赖扫描",
@@ -76,6 +83,13 @@ const T = {
     iacTitle: "Break Anything · 基础设施即代码(IaC)扫描",
     iacClean: "✓ IaC 规则未发现错误配置。",
     iacScanned: (n, t) => `已扫 ${n} 个 IaC 文件${t ? `  ·  ${t}` : ""}`,
+    fixTitle: "Break Anything · 修复计划",
+    fixClean: "✓ 没有要修的——未发现有漏洞的依赖。",
+    fixHead: (u, v) => `${u} 个包待升级  ·  可消除 ${v} 个漏洞`,
+    fixResolves: (n) => `消除 ${n} 个 CVE`,
+    fixNoFixHead: "无上游修复版本",
+    fixNoFixHint: "锁版本并做缓解,或迁移到维护中的 fork。可把这些交给 Patch Anything。",
+    fixValidate: "升级目标是「尽量小的安全版本」建议,请用你的测试验证兼容性。",
   },
 }[LANG];
 
@@ -313,4 +327,54 @@ export function renderApi(result, { color = true } = {}) {
   const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
   lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${parts}`);
   return lines.join("\n");
+}
+
+// ---- Fix plan ----
+export function renderFix(result, { color = true } = {}) {
+  const c = palette(color);
+  const lines = [];
+  lines.push(`${c.bold}${T.fixTitle}${c.reset}`);
+
+  if (!result.ok) {
+    lines.push("");
+    lines.push(`${c.yellow}${result.message}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  const s = result.summary;
+  if (!s.upgradeCount && !s.noFixCount) {
+    lines.push(`${c.gray}${result.target}${c.reset}`);
+    lines.push("");
+    lines.push(`${c.green}${T.fixClean}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  lines.push(`${c.gray}${result.target}  ·  ${T.fixHead(s.upgradeCount, s.resolvedVulns)}${c.reset}`);
+  lines.push("");
+
+  result.upgrades.forEach((u, i) => {
+    const reachLabel = T.reach[reachName(u.maxReach)] || "";
+    const tag = `${reachLabel} · ${u.maxSeverity}`;
+    const sevc = SEV_COLOR[u.maxSeverity] || "";
+    lines.push(`${c.bold}${i + 1}.${c.reset} ${sevc}[${tag}]${c.reset} ${c.bold}${u.package}${c.reset} ${u.from} ${c.gray}→${c.reset} ${c.green}${u.to}${c.reset}  ${c.gray}${T.fixResolves(u.resolves)}${c.reset}`);
+    lines.push(`   ${c.cyan}${u.command}${c.reset}`);
+  });
+
+  if (result.noFix.length) {
+    lines.push("");
+    lines.push(`${c.bold}${c.yellow}${T.fixNoFixHead}${c.reset}`);
+    for (const n of result.noFix) {
+      const sev = `${SEV_COLOR[n.severity] || ""}${n.severity.padEnd(8)}${c.reset}`;
+      lines.push(`  ${sev} ${c.bold}${n.package}@${n.version}${c.reset} ${c.cyan}${n.cve}${c.reset} ${c.gray}(${T.reach[n.reachability] || n.reachability})${c.reset}`);
+    }
+    lines.push(`  ${c.gray}${T.fixNoFixHint}${c.reset}`);
+  }
+
+  lines.push("");
+  lines.push(`${c.gray}${T.fixValidate}${c.reset}`);
+  return lines.join("\n");
+}
+
+function reachName(rank) {
+  return { 4: "called", 3: "imported", 2: "direct", 1: "transitive" }[rank] || "unknown";
 }

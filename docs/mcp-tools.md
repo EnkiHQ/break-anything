@@ -4,9 +4,9 @@ Break Anything is one MCP interface over a deep arsenal of industry-standard sca
 MCP interface describes *what the agent wants to learn*; a provider decides *how* to answer. This
 page is the exhaustive catalog, organized by scan category.
 
-Legend: **✅ shipped (0.5.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
-`api_scan`)** · **🧭 roadmap**. Dynamic (traffic-sending) tools are **off by default** and refuse
-any target not on the authorization allowlist.
+Legend: **✅ shipped (0.7.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
+`api_scan`, `fix_plan`)** · **🧭 roadmap**. Dynamic (traffic-sending) tools are **off by default**
+and refuse any target not on the authorization allowlist.
 
 ---
 
@@ -187,12 +187,17 @@ differs from A's own. Supply the two accounts you control via `--config`:
 | **Finds** | known-vulnerable bundled deps, memory-safety smells, hardcoded secrets (pairs with the REA companion) |
 | **Planned tool** | `binary_scan(path)` |
 
-## 🧭 Remediation & handoff — `fix_*`
+## ✅ Remediation & handoff — `fix_plan`
 
 | | |
 | --- | --- |
-| **Finds** | n/a — produces fixes |
-| **Planned tools** | `fix_plan(from)`, `fix_suggest_patch(finding)`, `fix_mitigation(finding)`, `fix_handoff_patch_anything(finding)` |
+| **Status** | ✅ shipped (dependency upgrades) |
+| **Produces** | a prioritized plan, not a scan |
+| **Logic** | group CVEs by package → minimal safe upgrade that clears the most CVEs → order by reachability (`called` first) then severity → exact `npm`/`pip`/`composer` command |
+| **No-fix path** | packages with no upstream fix are listed with mitigation guidance (pin, mitigate, maintained fork) |
+| **MCP tool** | `fix_plan(path, reachability?)` |
+| **CLI** | `brk fix <path> [--from deps.json] [--json]` |
+| **Roadmap** | `fix_suggest_patch(finding)`, `fix_mitigation(finding)`, deep handoff to Patch Anything for a merge-ready PR |
 
 ---
 

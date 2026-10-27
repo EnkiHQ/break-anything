@@ -78,6 +78,7 @@ npx -y break-anything image my-svc:latest  # OS + app CVEs in a container image
 npx -y break-anything sast ./src           # static code analysis (injection, authz, SSRF…)
 npx -y break-anything iac ./deploy         # IaC misconfigs (Dockerfile/K8s/Terraform) — no install
 npx -y break-anything api http://localhost:4000 --config accounts.json  # IDOR/authz on a running API (authorized)
+npx -y break-anything fix ./             # turn the dep findings into a prioritized upgrade plan
 ```
 
 ## Why it's different
@@ -131,7 +132,7 @@ engine.
 ## The arsenal
 
 Organized by scan category — the language security teams speak — each orchestrating tools that
-already run in real pipelines. ✅ shipped in 0.5.0 · 🧭 on the roadmap.
+already run in real pipelines. ✅ shipped in 0.7.0 · 🧭 on the roadmap.
 
 ### ✅ Shipped today
 
@@ -141,6 +142,7 @@ already run in real pipelines. ✅ shipped in 0.5.0 · 🧭 on the roadmap.
 - **Static code (SAST)** — injection, broken access control, insecure deserialization, SSRF, hardcoded secrets — each with file/line, CWE/OWASP tags, and the offending snippet. Engine: [Semgrep](https://semgrep.dev).
 - **Infrastructure as Code (IaC)** — Dockerfile, Kubernetes, and Terraform misconfigurations (root containers, privileged pods, world-open CIDRs, public buckets, baked-in secrets), each with file/line, CWE, and a fix. Built in — no engine to install.
 - **API security (DAST)** — probe a *running* API for broken object-level authorization (IDOR/BOLA), missing auth, and missing security headers, each proven with the reproducing request. Built-in; off by default, authorized targets only.
+- **Fix planning** — turns the findings into a prioritized upgrade plan: the minimal safe version that clears the most CVEs per package, ordered by reachability then severity, with the exact `npm`/`pip`/`composer` command. No-fix packages get mitigation guidance.
 
 ### 🧭 On the roadmap
 

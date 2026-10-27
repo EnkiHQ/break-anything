@@ -6,10 +6,10 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.5.0)
+## Shipped (0.7.0)
 
-- **Supply chain / dependencies (SCA)** — npm, Composer (PHP), pip; OSV lookup, import-based
-  reachability heuristic, EPSS, fix versions.
+- **Supply chain / dependencies (SCA)** — npm, Composer (PHP), pip; OSV lookup, two-tier
+  reachability (`called` > `imported`), EPSS, fix versions.
 - **Secrets** — working tree + git history, redacted output.
 - **Container images** — via Trivy.
 - **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,
@@ -20,7 +20,10 @@ as the shipped scanners.
 - **API security (DAST)** — dynamic probe of a running API for broken object-level authorization
   (IDOR/BOLA), missing authentication, and missing security headers, each with the reproducing
   request as proof. Off by default; authorized targets only.
-- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`, `api_scan`.
+- **Fix planning** — turns dependency findings into a prioritized remediation plan: minimal safe
+  upgrades ordered by reachability then severity, with the exact `npm`/`pip`/`composer` command.
+- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`, `api_scan`,
+  `fix_plan`.
 
 ## Next
 
@@ -43,8 +46,9 @@ as the shipped scanners.
 - **Smart contracts** — Slither / Mythril / Echidna for Solidity.
 - **Mobile** — MobSF for APK/IPA.
 - **Fuzzing** — AFL++ / libFuzzer / Jazzer / Atheris with minimized reproducers.
-- **Self-remediation** — when upstream has no fix: generate a patch, pin, compatibility shim, or
-  point to a maintained fork. Deep handoff to [Patch Anything](https://github.com/EnkiHQ/patch-anything).
+- **Self-remediation (deeper)** — `fix` ships today for dependency upgrade planning; next is
+  generating patches, pins, and compatibility shims when upstream has no fix, with a deep handoff to
+  [Patch Anything](https://github.com/EnkiHQ/patch-anything) for a merge-ready PR.
 - **SBOM & evidence bundles** — generate/diff SBOMs (Syft) and portable, reproducible finding
   records that survive across sessions and gate CI.
 

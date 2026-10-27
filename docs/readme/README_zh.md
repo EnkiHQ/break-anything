@@ -62,6 +62,7 @@ npx -y break-anything image my-svc:latest  # 容器镜像的 OS + 应用层 CVE
 npx -y break-anything sast ./src           # 静态代码分析(注入、越权、SSRF…)
 npx -y break-anything iac ./deploy         # IaC 错误配置(Dockerfile/K8s/Terraform)——免安装
 npx -y break-anything api http://localhost:4000 --config accounts.json  # 运行中 API 的越权/鉴权检测(需授权)
+npx -y break-anything fix ./             # 把依赖发现变成按优先级排序的升级计划
 ```
 
 ## 凭什么不一样
@@ -101,7 +102,7 @@ npx -y break-anything api http://localhost:4000 --config accounts.json  # 运行
 
 ## 军火库
 
-按**扫描类别**组织(安全团队的通用语言),每类都编排真实流水线里在跑的工具。✅ 0.5.0 已发 · 🧭 路线图。
+按**扫描类别**组织(安全团队的通用语言),每类都编排真实流水线里在跑的工具。✅ 0.7.0 已发 · 🧭 路线图。
 
 ### ✅ 今日已发
 
@@ -111,6 +112,7 @@ npx -y break-anything api http://localhost:4000 --config accounts.json  # 运行
 - **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF、硬编码密钥——每条带文件/行号、CWE/OWASP 标签和命中代码片段。引擎:[Semgrep](https://semgrep.dev)。
 - **基础设施即代码(IaC)** — Dockerfile、Kubernetes、Terraform 的错误配置(以 root 运行的容器、特权 Pod、对全网开放的 CIDR、公开桶、烤进镜像的密钥),每条带文件/行号、CWE 和修复建议。内置实现,免装任何引擎。
 - **API 安全(DAST)** — 对一个*运行中*的 API 探测越权(IDOR/BOLA)、缺失鉴权、缺失安全响应头,每条都带可复现的请求作为证据。内置实现;默认关闭,仅限授权目标。
+- **修复规划(Fix)** — 把发现变成按优先级排序的升级计划:每个包算出"能一次消掉最多 CVE 的最小安全版本",按可达性再按严重度排序,给出确切的 `npm`/`pip`/`composer` 命令。没有修复版本的单列并给缓解建议。
 
 ### 🧭 路线图
 

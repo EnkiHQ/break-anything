@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.6.0";
+const VERSION = "0.7.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -14,6 +14,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk sast [path]        静态代码分析找漏洞(需 semgrep)
   brk iac [path]         扫描 IaC 错误配置(Dockerfile/Kubernetes/Terraform,内置,免安装)
   brk api <baseUrl>      对运行中的 API 做越权(IDOR)/鉴权检测(动态,默认关闭,需授权)
+  brk fix [path]         把依赖扫描结果变成按优先级排序的修复计划(含升级命令)
   brk mcp                以 MCP server 模式启动(供 Agent 调用)
   brk doctor             检查运行环境与网络连通性
   brk setup              自动把 Break Anything 注册进本机各家 Agent(--dry-run 预演,--print 仅打印配置)
@@ -32,7 +33,7 @@ secrets 选项:
 `;
 
 // 这些 flag 接受一个值,支持 --key=value 与 --key value 两种写法
-const VALUE_FLAGS = new Set(["config", "top"]);
+const VALUE_FLAGS = new Set(["config", "top", "from"]);
 
 function parseFlags(argv) {
   const flags = {};
@@ -186,6 +187,34 @@ async function main() {
     }
     const hasHigh = result.findings?.some((f) => f.severity === "CRITICAL" || f.severity === "HIGH");
     process.exitCode = hasHigh ? 1 : 0;
+    return;
+  }
+
+  if (cmd === "fix") {
+    const { flags, positional } = parseFlags(rest);
+    const target = positional[0] || process.cwd();
+    const { fixDependencies } = await import("../src/fix.js");
+    const { renderFix } = await import("../src/report.js");
+    let opts = { reachability: flags.reachability !== false };
+    if (flags.from) {
+      const fs = await import("node:fs/promises");
+      try {
+        const j = JSON.parse(await fs.readFile(flags.from, "utf8"));
+        opts.findings = Array.isArray(j) ? j : j.findings;
+      } catch (e) {
+        process.stderr.write(`读取 --from 失败:${e instanceof Error ? e.message : e}\n`);
+        process.exitCode = 2;
+        return;
+      }
+    }
+    const result = await fixDependencies(target, opts);
+    if (flags.json) {
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    } else {
+      const color = flags.color !== false && process.stdout.isTTY;
+      process.stdout.write(renderFix(result, { color }) + "\n");
+    }
+    process.exitCode = result.summary?.upgradeCount || result.summary?.noFixCount ? 1 : 0;
     return;
   }
 

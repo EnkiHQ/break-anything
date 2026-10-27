@@ -334,3 +334,65 @@ test("classifyUsage:called > imported > direct > transitive", () => {
   assert.equal(classifyUsage({ name: "c", direct: true }, u), "direct");
   assert.equal(classifyUsage({ name: "d", direct: false }, u), "transitive");
 });
+
+// ---- 修复计划(纯函数,不触网/文件)----
+import { compareVersions, pickUpgradeTarget, planFix } from "../src/fix.js";
+
+test("compareVersions:数字段比较,忽略预发布", () => {
+  assert.equal(compareVersions("4.17.4", "4.17.21") < 0, true);
+  assert.equal(compareVersions("1.2.6", "1.2.6"), 0);
+  assert.equal(compareVersions("2.0.0", "1.9.9") > 0, true);
+  assert.equal(compareVersions("1.2.0-beta", "1.2.0") === 0, true); // 忽略 -beta
+});
+
+test("pickUpgradeTarget:取能覆盖所有 CVE 的最小安全版本", () => {
+  const findings = [
+    { fixedVersions: ["4.17.11"] },
+    { fixedVersions: ["4.17.21"] },
+    { fixedVersions: ["4.17.12"] },
+  ];
+  // 升到 4.17.21 才能覆盖全部 → 取各 CVE 最近安全版本里的最大者
+  assert.equal(pickUpgradeTarget("4.17.4", findings), "4.17.21");
+});
+
+test("pickUpgradeTarget:多分支修复选最接近当前且更高的", () => {
+  const findings = [{ fixedVersions: ["1.2.6", "0.2.4"] }];
+  assert.equal(pickUpgradeTarget("1.2.0", findings), "1.2.6"); // 0.2.4 比当前低,忽略
+});
+
+test("planFix:按可达性→严重度排序,给出升级命令", () => {
+  const findings = [
+    { package: "minimist", version: "1.2.0", ecosystem: "npm", reachability: "imported", severity: "CRITICAL", epss: 0.04, cve: "CVE-2021-44906", fixedVersions: ["1.2.6"] },
+    { package: "lodash", version: "4.17.4", ecosystem: "npm", reachability: "called", severity: "HIGH", epss: 0.21, cve: "CVE-2021-23337", fixedVersions: ["4.17.21"] },
+    { package: "lodash", version: "4.17.4", ecosystem: "npm", reachability: "called", severity: "CRITICAL", epss: 0.05, cve: "CVE-2019-10744", fixedVersions: ["4.17.12"] },
+  ];
+  const plan = planFix(findings);
+  assert.equal(plan.upgrades.length, 2);
+  // lodash 被调用 → 排在 minimist(仅引用)前面,即使 minimist 也是 CRITICAL
+  assert.equal(plan.upgrades[0].package, "lodash");
+  assert.equal(plan.upgrades[0].to, "4.17.21"); // 覆盖两个 CVE 的最小版本
+  assert.equal(plan.upgrades[0].resolves, 2);
+  assert.equal(plan.upgrades[0].command, "npm install lodash@4.17.21");
+  assert.equal(plan.summary.resolvedVulns, 3);
+});
+
+test("planFix:无修复版本的单列到 noFix", () => {
+  const findings = [
+    { package: "ghost", version: "1.0.0", ecosystem: "npm", reachability: "called", severity: "HIGH", cve: "CVE-2030-0001", fixedVersions: [] },
+  ];
+  const plan = planFix(findings);
+  assert.equal(plan.upgrades.length, 0);
+  assert.equal(plan.noFix.length, 1);
+  assert.equal(plan.noFix[0].package, "ghost");
+  assert.equal(plan.summary.noFixCount, 1);
+});
+
+test("planFix:pip 与 composer 的升级命令", () => {
+  const plan = planFix([
+    { package: "flask", version: "0.12", ecosystem: "PyPI", reachability: "direct", severity: "HIGH", cve: "x", fixedVersions: ["1.0"] },
+    { package: "monolog/monolog", version: "1.0.0", ecosystem: "Packagist", reachability: "direct", severity: "MEDIUM", cve: "y", fixedVersions: ["1.25.0"] },
+  ]);
+  const byPkg = Object.fromEntries(plan.upgrades.map((u) => [u.package, u.command]));
+  assert.equal(byPkg["flask"], 'pip install "flask==1.0"');
+  assert.equal(byPkg["monolog/monolog"], "composer require monolog/monolog:1.25.0");
+});

@@ -12,6 +12,26 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - CISA KEV enrichment in `deps`; call-graph reachability to the vulnerable symbol.
 
+## [0.7.0] - 2026-10-23
+
+### Added
+- `fix` — turns dependency findings into a prioritized, actionable remediation plan. This closes the
+  **Fix** leg of find → prove → fix.
+  - Groups CVEs by package and computes the **minimal safe upgrade** that resolves the most CVEs at
+    once (handles multi-branch backport fix versions).
+  - Orders the work by **reachability first** (`called` before `imported`), then severity, then how
+    many CVEs each upgrade clears — so you fix what an attacker can actually reach first.
+  - Emits the **exact upgrade command** per ecosystem: `npm install`, `pip install`,
+    `composer require`.
+  - Packages with **no upstream fix** are listed separately with mitigation guidance (pin, mitigate,
+    or move to a maintained fork — hand off to Patch Anything).
+  - `brk fix [path]`, plus `--from <deps.json>` to plan from an existing scan without rescanning,
+    and `--json`.
+- `fix_plan` MCP tool.
+
+### Honest limitation
+- Upgrade targets are minimal safe-version *suggestions*; validate compatibility with your own tests.
+
 ## [0.6.0] - 2026-10-23
 
 ### Changed
@@ -93,7 +113,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/EnkiHQ/break-anything/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/EnkiHQ/break-anything/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/EnkiHQ/break-anything/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/EnkiHQ/break-anything/compare/v0.3.0...v0.4.0

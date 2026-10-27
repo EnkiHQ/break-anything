@@ -7,6 +7,7 @@ import { scanImage } from "./image.js";
 import { scanSast } from "./sast.js";
 import { scanApi } from "./api.js";
 import { scanIac } from "./iac.js";
+import { fixDependencies } from "./fix.js";
 
 const TOOLS = [
   {
@@ -78,6 +79,24 @@ const TOOLS = [
     },
   },
   {
+    name: "fix_plan",
+    description:
+      "Turn dependency findings into a prioritized, actionable remediation plan. Scans the project " +
+      "(or accepts findings directly), groups CVEs by package, computes the minimal safe upgrade " +
+      "that resolves the most CVEs per package, and orders the work by reachability (called first) " +
+      "then severity — with the exact upgrade command per ecosystem (npm/pip/composer). Packages " +
+      "with no upstream fix are listed separately with mitigation guidance. Targets are minimal " +
+      "safe-version suggestions to validate with your tests.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Absolute path to the project to scan and plan fixes for." },
+        reachability: { type: "boolean", description: "Compute reachability while scanning. Default true." },
+      },
+      required: ["path"],
+    },
+  },
+  {
     name: "iac_scan",
     description:
       "Scan infrastructure-as-code for high-impact misconfigurations: Dockerfiles (root user, " +
@@ -121,7 +140,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.6.0" },
+    { name: "break-anything", version: "0.7.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -146,6 +165,9 @@ export async function startMcpServer() {
       } else if (name === "iac_scan") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await scanIac(args.path);
+      } else if (name === "fix_plan") {
+        if (!strArg(args.path)) return bad("缺少必填参数 path。");
+        result = await fixDependencies(args.path, { reachability: args.reachability !== false });
       } else if (name === "api_scan") {
         if (!strArg(args.baseUrl)) return bad("缺少必填参数 baseUrl。");
         result = await scanApi({ baseUrl: args.baseUrl, accounts: args.accounts || {}, idorPaths: args.idorPaths || [] });
