@@ -278,3 +278,59 @@ test("scanTerraform:开放 CIDR / 公开桶 / 硬编码密钥,且忽略变量引
   const secret = out.find((f) => f.rule === "tf-hardcoded-secret");
   assert.ok(!secret.evidence.includes("hunter2plaintext"));
 });
+
+// ---- 深度可达性:绑定抽取 + 调用检测(纯函数,不触文件系统)----
+import { extractBindings, isCalled, classifyUsage } from "../src/reachability.js";
+
+test("extractBindings:require 默认导入与解构", () => {
+  const b1 = extractBindings("const _ = require('lodash')", "lodash");
+  assert.ok(b1.has("_"));
+  const b2 = extractBindings("const { merge, get: g } = require('lodash')", "lodash");
+  assert.ok(b2.has("merge"));
+  assert.ok(b2.has("g")); // 重命名取本地名
+});
+
+test("extractBindings:ESM 默认 / 命名 / 命名空间 / 重命名", () => {
+  assert.ok(extractBindings("import _ from 'lodash'", "lodash").has("_"));
+  assert.ok(extractBindings("import * as _ from 'lodash'", "lodash").has("_"));
+  const named = extractBindings("import { merge as m, get } from 'lodash'", "lodash");
+  assert.ok(named.has("m"));
+  assert.ok(named.has("get"));
+});
+
+test("extractBindings:TS 纯类型导入不计入可调用绑定", () => {
+  const b = extractBindings("import { type Opts, build } from 'pkg'", "pkg");
+  assert.ok(b.has("build"));
+  assert.ok(!b.has("Opts"));
+});
+
+test("extractBindings:只抽取来自该包的绑定,不串包", () => {
+  const text = "import { merge } from 'lodash'\nimport { danger } from 'evil-pkg'";
+  const b = extractBindings(text, "lodash");
+  assert.ok(b.has("merge"));
+  assert.ok(!b.has("danger"));
+});
+
+test("isCalled:直接调用 / 成员调用 / new 调用 → true", () => {
+  assert.equal(isCalled("const r = merge(a, b)", new Set(["merge"])), true);
+  assert.equal(isCalled("_.chain(x).value()", new Set(["_"])), true);
+  assert.equal(isCalled("const c = new Client()", new Set(["Client"])), true);
+  assert.equal(isCalled("obj?.foo(); _?.get(x)", new Set(["_"])), true);
+});
+
+test("isCalled:仅导入未调用 → false,且不被他人成员调用误报", () => {
+  assert.equal(isCalled("export { merge }", new Set(["merge"])), false);
+  // other.merge( 是别的对象的方法,不应算作 merge 这个绑定被调用
+  assert.equal(isCalled("other.merge(a, b)", new Set(["merge"])), false);
+});
+
+test("classifyUsage:called > imported > direct > transitive", () => {
+  const u = new Map([
+    ["a", { imported: true, called: true }],
+    ["b", { imported: true, called: false }],
+  ]);
+  assert.equal(classifyUsage({ name: "a", direct: true }, u), "called");
+  assert.equal(classifyUsage({ name: "b", direct: true }, u), "imported");
+  assert.equal(classifyUsage({ name: "c", direct: true }, u), "direct");
+  assert.equal(classifyUsage({ name: "d", direct: false }, u), "transitive");
+});

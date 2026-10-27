@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.5.0";
+const VERSION = "0.6.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -85,9 +85,9 @@ async function main() {
       const color = flags.color !== false && process.stdout.isTTY;
       process.stdout.write(renderHuman(result, { color, top: flags.top ? Number(flags.top) : undefined }) + "\n");
     }
-    // 有高危且可达的发现时用非零退出码,方便接 CI
+    // 有高危且可达(被调用/已引用)的发现时用非零退出码,方便接 CI
     const hasReachableHigh = result.findings?.some(
-      (f) => f.reachability === "imported" && (f.severity === "CRITICAL" || f.severity === "HIGH"),
+      (f) => (f.reachability === "called" || f.reachability === "imported") && (f.severity === "CRITICAL" || f.severity === "HIGH"),
     );
     process.exitCode = hasReachableHigh ? 1 : 0;
     return;

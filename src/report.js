@@ -16,15 +16,16 @@ const T = {
     depsTarget: (t, n, s) => `target ${t}  ·  ${n} packages scanned  ·  ${s}`,
     depsClean: "✓ No matching vulnerabilities in the OSV database.",
     cleanNote: "  Note: this means \"none found\", not \"safe\".",
-    reach: { imported: "reachable", direct: "direct dep", transitive: "transitive", unknown: "—" },
+    reach: { called: "called", imported: "imported", direct: "direct dep", transitive: "transitive", unknown: "—" },
     epss: (v) => (v != null ? `EPSS ${(v * 100).toFixed(1)}%` : "EPSS —"),
     fix: (v) => `fix → ${v}`,
     noFix: "no fix available",
     summary: "summary",
     findings: "findings",
     reachable: "reachable",
+    invoked: "called",
     skipped: (n) => `(${n} packages failed to query, skipped)`,
-    heuristic: "Reachability is a heuristic (is it imported), not proof the vulnerable code runs.",
+    heuristic: "Reachability is a heuristic: \"called\" means an imported symbol is invoked in your code — still not proof the specific vulnerable function runs.",
     secretsTitle: "Break Anything · secret scan",
     secretsTarget: (t, on) => `target ${t}  ·  history scan ${on ? "on" : "off"}`,
     secretsClean: "✓ No leaked secrets found.",
@@ -48,15 +49,16 @@ const T = {
     depsTarget: (t, n, s) => `目标 ${t}  ·  已扫 ${n} 个包  ·  ${s}`,
     depsClean: "✓ 未在已知漏洞库(OSV)中发现匹配的漏洞。",
     cleanNote: "  注意:这表示\"未发现\",不等于\"安全\"。",
-    reach: { imported: "可达(已被引用)", direct: "直接依赖", transitive: "传递依赖", unknown: "—" },
+    reach: { called: "被调用", imported: "已引用", direct: "直接依赖", transitive: "传递依赖", unknown: "—" },
     epss: (v) => (v != null ? `EPSS ${(v * 100).toFixed(1)}%` : "EPSS —"),
     fix: (v) => `修复 → ${v}`,
     noFix: "无修复版本",
     summary: "小结",
     findings: "条",
     reachable: "可达",
+    invoked: "被调用",
     skipped: (n) => `(${n} 个包查询失败,已跳过)`,
-    heuristic: "可达性为启发式(判断是否被引用),非漏洞函数被调用的证明。",
+    heuristic: "可达性为启发式:「被调用」指导入的符号在你代码里被调用——仍不等于公告里那个具体脆弱函数被执行。",
     secretsTitle: "Break Anything · 密钥扫描",
     secretsTarget: (t, on) => `目标 ${t}  ·  历史扫描 ${on ? "开" : "关"}`,
     secretsClean: "✓ 未发现疑似泄露的密钥。",
@@ -124,7 +126,8 @@ export function renderHuman(result, { color = true, top } = {}) {
     .sort((a, b) => sevOrder(b[0]) - sevOrder(a[0]))
     .map(([k, v]) => `${k} ${v}`)
     .join("  ");
-  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${s.reachable} ${T.reachable}  ·  ${sevParts}`);
+  const reachPart = `${s.reachable} ${T.reachable}` + (s.called ? ` (${s.called} ${T.invoked})` : "");
+  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${reachPart}  ·  ${sevParts}`);
   if (result.errors?.length) lines.push(`${c.gray}${T.skipped(result.errors.length)}${c.reset}`);
   lines.push(`${c.gray}${T.heuristic}${c.reset}`);
   return lines.join("\n");

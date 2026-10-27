@@ -26,8 +26,8 @@ as the shipped scanners.
 
 - **More SAST engines** — CodeQL, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs
   (Java), security-code-scan (.NET), retire.js (frontend) — broaden language/stack coverage.
-- **Exploitability engine** — upgrade reachability from "is it imported" to "is the vulnerable
-  symbol on a real call path", and rank with EPSS + CISA KEV.
+- **Exploitability engine** — reachability is now two-tier (`called` > `imported`); next is a real
+  call graph to the specific vulnerable symbol named in the advisory, ranked with EPSS + CISA KEV.
 - **More DAST checks** — injection, SSRF, auth/session flaws, plus Nuclei templates and
   OpenAPI-driven fuzzing (Schemathesis) on top of today's authorization prober.
 - **Deeper IaC** — opt-in Checkov / tfsec / KICS backends plus CloudFormation, ARM/Bicep, Ansible

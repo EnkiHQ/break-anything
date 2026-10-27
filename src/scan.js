@@ -1,7 +1,7 @@
 import { loadLockfiles } from "./lockfiles.js";
 import { scanPackages, severityRank } from "./osv.js";
 import { enrichEpss } from "./epss.js";
-import { buildReachability, classify, reachRank } from "./reachability.js";
+import { analyzeUsage, classifyUsage, reachRank } from "./reachability.js";
 
 // 一次完整的依赖扫描:lockfile → OSV → EPSS → 可达性 → 排序后的发现列表
 export async function scanDependencies(targetPath, { reachability = true, concurrency = 8 } = {}) {
@@ -25,16 +25,16 @@ export async function scanDependencies(targetPath, { reachability = true, concur
   const epss = await enrichEpss(cves);
 
   // 可达性:只在有源码时做
-  let imported = new Set();
+  let usage = new Map();
   if (reachability) {
     const names = [...new Set(allPackages.map((p) => p.name))];
-    imported = await buildReachability(dir, names);
+    usage = await analyzeUsage(dir, names);
   }
 
   // 展开成「每个漏洞一行」的发现
   const flat = [];
   for (const { pkg, vulns } of raw) {
-    const reach = reachability ? classify(pkg, imported) : "unknown";
+    const reach = reachability ? classifyUsage(pkg, usage) : "unknown";
     for (const v of vulns) {
       const ep = v.cve ? epss.get(v.cve) : null;
       flat.push({
@@ -83,11 +83,12 @@ function summarize(flat) {
   for (const f of flat) {
     sum.total++;
     sum.bySeverity[f.severity] = (sum.bySeverity[f.severity] || 0) + 1;
-    if (f.reachability === "imported") sum.reachable++;
+    if (f.reachability === "called" || f.reachability === "imported") sum.reachable++;
+    if (f.reachability === "called") sum.called++;
   }
   return sum;
 }
 
 function emptySummary() {
-  return { total: 0, reachable: 0, bySeverity: {} };
+  return { total: 0, reachable: 0, called: 0, bySeverity: {} };
 }

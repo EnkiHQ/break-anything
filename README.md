@@ -86,9 +86,11 @@ Every scanner can hand you a list. The list is the problem. Break Anything is bu
 three things a list can't do:
 
 - **Reachability — it thinks like an attacker.** An attacker doesn't work through 400 theoretical
-  CVEs; they go straight for the few they can actually reach. Break Anything does the same:
-  `confirmed` → `reachable` → `present` → `not-reachable`. The vulnerable `lodash` you never call
-  is noise; the one on a live code path is the finding. You triage 3, not 400.
+  CVEs; they go straight for the few they can actually reach. Break Anything ranks the same way:
+  `called` → `imported` → `direct` → `transitive`. It doesn't just check that a vulnerable package
+  is present — it extracts the symbols you imported from it and checks whether your code actually
+  **calls** them. The `lodash` you never invoke is noise; the one you call is the finding. You
+  triage 3, not 400.
 - **Proof, not prose.** Instead of a CVSS paragraph, it builds a proof-of-concept against *your*
   build — the exact input or request that breaks it — so "theoretically vulnerable" becomes
   "here's the repro."

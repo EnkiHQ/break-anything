@@ -20,7 +20,7 @@ any target not on the authorization allowlist.
 | **Ecosystems** | npm, PyPI, Composer (PHP), Go, Maven/Gradle, Cargo, RubyGems, NuGet |
 | **Intel overlay** | EPSS (exploit probability), CISA KEV (known-exploited), GitHub Advisory |
 | **SBOM** | Syft / CycloneDX generation + diff |
-| **Signal** | import-based reachability today; call-path reachability on the roadmap |
+| **Signal** | two-tier reachability: `called` (an imported symbol is invoked in your code) > `imported` > `direct` > `transitive`; call-path-to-vulnerable-symbol on the roadmap |
 | **MCP tool** | `deps_scan(path, reachability?)` |
 | **CLI** | `brk deps <path> [--json] [--no-reachability]` |
 

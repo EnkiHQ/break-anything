@@ -10,7 +10,28 @@ All notable changes to Break Anything are documented here. This project follows
 - More DAST checks (injection, SSRF, auth bypass) and Nuclei template support.
 - Optional deep IaC coverage via Checkov / Trivy / KICS on top of the built-in rules.
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
-- CISA KEV enrichment in `deps`.
+- CISA KEV enrichment in `deps`; call-graph reachability to the vulnerable symbol.
+
+## [0.6.0] - 2026-10-23
+
+### Changed
+- `deps` reachability is now two-tier and much stronger. Beyond "is the package imported", it
+  extracts the symbols actually imported from a vulnerable package (default / namespace / named /
+  renamed, for both `require` and ESM) and checks whether those symbols are **invoked** in your
+  code:
+  - **`called`** — an imported symbol is actually invoked (`_.merge(...)`, `new Client()`, …) → the
+    strongest reachability signal, ranked above everything else.
+  - **`imported`** — imported but no call seen (side-effect or type-only import).
+  - **`direct` / `transitive`** — unchanged.
+  Call analysis covers JS/TS (`.js/.mjs/.cjs/.jsx/.ts/.tsx/.vue`); PHP/Python stay at import
+  granularity. Member calls on unrelated objects (`other.merge(...)`) no longer cause false
+  positives. The summary now reports both reachable and "called" counts, and `--json` carries
+  `reachability: "called"`.
+
+### Honest limitation
+- `called` means an imported symbol is invoked — it is still **not** proof that the specific
+  vulnerable function named in the advisory executes. True call-graph-to-symbol reachability is on
+  the roadmap.
 
 ## [0.5.0] - 2026-10-23
 
@@ -72,7 +93,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/EnkiHQ/break-anything/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/EnkiHQ/break-anything/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/EnkiHQ/break-anything/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/EnkiHQ/break-anything/compare/v0.2.0...v0.3.0
