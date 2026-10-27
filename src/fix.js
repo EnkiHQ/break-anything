@@ -19,7 +19,7 @@ export function compareVersions(a, b) {
   return 0;
 }
 
-// 对单个 CVE:选「大于当前版本里最小的那个修复版」,没有更大的就退回已知最高修复版
+// 对单个 CVE 的修复版本集合:取「大于当前版本里最小的」,没有更高的就退回已知最高修复版
 function minimalFix(current, fixes) {
   const sorted = [...fixes].sort(compareVersions);
   const greater = sorted.filter((f) => compareVersions(f, current) > 0);
@@ -27,80 +27,85 @@ function minimalFix(current, fixes) {
   return sorted[sorted.length - 1];
 }
 
-// 选一个目标版本,使其 >= 该包每个可修复 CVE 的最小修复版 → 一次升级关掉全部(纯函数,可单测)
-export function pickTarget(current, fixArrays) {
+// 给一个包的若干 CVE(每个有 fixedVersions),挑出能覆盖全部的最小安全升级目标(纯函数,可单测)
+export function pickUpgradeTarget(currentVersion, findings) {
   let target = null;
-  for (const arr of fixArrays) {
-    if (!arr || !arr.length) continue;
-    const m = minimalFix(current, arr);
+  for (const f of findings) {
+    const fixes = f.fixedVersions || [];
+    if (!fixes.length) continue;
+    const m = minimalFix(currentVersion, fixes);
     if (!target || compareVersions(m, target) > 0) target = m;
   }
   return target;
 }
 
-export function upgradeCommand(ecosystem, name, version) {
+function upgradeCommand(ecosystem, name, version) {
   switch (ecosystem) {
     case "npm": return `npm install ${name}@${version}`;
-    case "PyPI": return `pip install '${name}==${version}'`;
+    case "PyPI": return `pip install "${name}==${version}"`;
     case "Packagist": return `composer require ${name}:${version}`;
     default: return `# upgrade ${name} to ${version}`;
   }
 }
 
-// 从一组发现(findings)构建修复方案(纯函数,可单测)。
+function topSeverity(findings) {
+  return findings.reduce((a, f) => (severityRank(f.severity) > severityRank(a) ? f.severity : a), "UNKNOWN");
+}
+
+// ---- 核心:从发现列表生成修复计划(纯函数,可单测)----
 // 返回形状与 report.renderFix / CLI 对齐:
-//   { ok, target, upgrades:[{package,from,to,resolves,command,maxReach(数值),maxSeverity}],
+//   { upgrades:[{package,from,to,resolves,command,maxReach(数值),maxSeverity}],
 //     noFix:[{package,version,cve,severity,reachability}],
 //     summary:{upgradeCount,noFixCount,resolvedVulns} }
-export function buildFixPlan(findings, target = "") {
+export function planFix(findings = []) {
   const groups = new Map();
-  for (const f of findings || []) {
+  for (const f of findings) {
     const key = `${f.ecosystem}|${f.package}|${f.version}`;
     if (!groups.has(key)) {
-      groups.set(key, {
-        package: f.package, version: f.version, ecosystem: f.ecosystem,
-        reachability: f.reachability || "unknown", severity: f.severity || "UNKNOWN",
-        fixable: [], unfixable: [],
-      });
+      groups.set(key, { package: f.package, version: f.version, ecosystem: f.ecosystem, items: [] });
     }
-    const g = groups.get(key);
-    if (severityRank(f.severity) > severityRank(g.severity)) g.severity = f.severity;
-    if (reachRank(f.reachability) > reachRank(g.reachability)) g.reachability = f.reachability;
-    const id = f.cve || f.id;
-    if (Array.isArray(f.fixedVersions) && f.fixedVersions.length) {
-      g.fixable.push({ id, fixedVersions: f.fixedVersions });
-    } else {
-      g.unfixable.push({ id, severity: f.severity || "UNKNOWN", reachability: f.reachability || "unknown" });
-    }
+    groups.get(key).items.push(f);
   }
 
   const upgrades = [], noFix = [];
   for (const g of groups.values()) {
-    if (g.fixable.length) {
-      const to = pickTarget(g.version, g.fixable.map((c) => c.fixedVersions));
+    const fixable = g.items.filter((f) => Array.isArray(f.fixedVersions) && f.fixedVersions.length);
+    const unfixable = g.items.filter((f) => !(Array.isArray(f.fixedVersions) && f.fixedVersions.length));
+
+    if (fixable.length) {
+      const to = pickUpgradeTarget(g.version, fixable);
       upgrades.push({
-        package: g.package, from: g.version, to,
-        resolves: g.fixable.length,
+        package: g.package,
+        ecosystem: g.ecosystem,
+        from: g.version,
+        to,
+        resolves: fixable.length,
+        cves: fixable.map((f) => f.cve || f.id),
+        maxReach: fixable.reduce((m, f) => Math.max(m, reachRank(f.reachability)), 0),
+        maxSeverity: topSeverity(fixable),
+        maxEpss: fixable.reduce((m, f) => Math.max(m, f.epss || 0), 0),
         command: upgradeCommand(g.ecosystem, g.package, to),
-        maxReach: reachRank(g.reachability),
-        maxSeverity: g.severity,
       });
     }
-    for (const c of g.unfixable) {
-      noFix.push({ package: g.package, version: g.version, cve: c.id, severity: c.severity, reachability: c.reachability });
+    for (const f of unfixable) {
+      noFix.push({
+        package: g.package, version: g.version, ecosystem: g.ecosystem,
+        cve: f.cve || f.id, severity: f.severity || "UNKNOWN", reachability: f.reachability || "unknown",
+        summary: (f.summary || "").replace(/\s+/g, " ").slice(0, 120),
+      });
     }
   }
 
-  const order = (a, b) =>
-    (b.maxReach ?? reachRank(b.reachability)) - (a.maxReach ?? reachRank(a.reachability)) ||
-    severityRank(b.maxSeverity ?? b.severity) - severityRank(a.maxSeverity ?? a.severity) ||
-    (b.resolves ?? 0) - (a.resolves ?? 0);
-  upgrades.sort(order);
-  noFix.sort(order);
+  upgrades.sort((a, b) =>
+    (b.maxReach - a.maxReach) ||
+    (severityRank(b.maxSeverity) - severityRank(a.maxSeverity)) ||
+    (b.resolves - a.resolves) ||
+    (b.maxEpss - a.maxEpss));
+  noFix.sort((a, b) =>
+    (reachRank(b.reachability) - reachRank(a.reachability)) ||
+    (severityRank(b.severity) - severityRank(a.severity)));
 
   return {
-    ok: true,
-    target,
     upgrades,
     noFix,
     summary: {
@@ -111,14 +116,14 @@ export function buildFixPlan(findings, target = "") {
   };
 }
 
-// 对一个项目:先扫依赖(或接收现成 findings),再出修复方案
+// ---- 入口:扫一次依赖并出计划(也可传入现成 findings 跳过扫描)----
 export async function fixDependencies(targetPath, { reachability = true, findings } = {}) {
   if (Array.isArray(findings)) {
-    return buildFixPlan(findings, targetPath);
+    return { ok: true, target: targetPath, ...planFix(findings) };
   }
   const scan = await scanDependencies(targetPath, { reachability });
   if (!scan.ok) {
-    return { ok: false, target: scan.target, message: scan.message, upgrades: [], noFix: [], summary: { upgradeCount: 0, noFixCount: 0, resolvedVulns: 0 } };
+    return { ok: false, target: scan.target || targetPath, message: scan.message, upgrades: [], noFix: [], summary: { upgradeCount: 0, noFixCount: 0, resolvedVulns: 0 } };
   }
-  return buildFixPlan(scan.findings, scan.target);
+  return { ok: true, target: scan.target, scanned: scan.scanned, ...planFix(scan.findings) };
 }
