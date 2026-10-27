@@ -106,7 +106,7 @@ npx -y break-anything fix ./             # 把依赖发现变成按优先级排�
 
 ### ✅ 今日已发
 
-- **依赖(SCA)** — 整棵依赖树的已知 CVE,按可达性 + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)(在野已利用)+ EPSS 排序,带修复版本。引擎:[OSV](https://osv.dev)、[Trivy](https://github.com/aquasecurity/trivy)、[Grype](https://github.com/anchore/grype)、pip-audit、govulncheck、composer audit。已支持生态:npm、PyPI、Composer、Go、Cargo(crates.io)、RubyGems;Maven/NuGet 在路线图。
+- **依赖(SCA)** — 整棵依赖树的已知 CVE,按可达性 + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)(在野已利用)+ EPSS 排序,带修复版本。引擎:[OSV](https://osv.dev)、[Trivy](https://github.com/aquasecurity/trivy)、[Grype](https://github.com/anchore/grype)、pip-audit、govulncheck、composer audit。已支持生态:npm、PyPI、Composer、Go、Rust(crates.io)、Ruby、Maven(Java)、NuGet(.NET)。
 - **密钥(Secrets)** — 工作区 + 完整 git 历史里的泄露 key/令牌/私钥,脱敏。引擎:[Gitleaks](https://github.com/gitleaks/gitleaks)、[TruffleHog](https://github.com/trufflesecurity/trufflehog)。
 - **容器镜像** — OS + 应用层 CVE、Dockerfile 坏味道、层里的密钥。引擎:[Trivy](https://github.com/aquasecurity/trivy)、[Grype](https://github.com/anchore/grype)、[Hadolint](https://github.com/hadolint/hadolint)。
 - **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF、硬编码密钥——每条带文件/行号、CWE/OWASP 标签和命中代码片段。引擎:[Semgrep](https://semgrep.dev)。

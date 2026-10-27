@@ -503,3 +503,61 @@ test("parseGemfileLockText:specs 为包,DEPENDENCIES 为直接依赖", () => {
   assert.ok(direct.has("rails"));
   assert.ok(!direct.has("actionpack")); // 不在 DEPENDENCIES 里
 });
+
+// ---- Maven / NuGet lockfile 解析(纯函数)----
+import { parsePomXml, parseNugetLock } from "../src/lockfiles.js";
+
+test("parsePomXml:解析依赖,groupId:artifactId 命名,${属性} 版本解析", () => {
+  const pom = [
+    "<project>",
+    "  <properties>",
+    "    <jackson.version>2.9.8</jackson.version>",
+    "  </properties>",
+    "  <dependencies>",
+    "    <dependency>",
+    "      <groupId>com.fasterxml.jackson.core</groupId>",
+    "      <artifactId>jackson-databind</artifactId>",
+    "      <version>${jackson.version}</version>",
+    "    </dependency>",
+    "    <dependency>",
+    "      <groupId>org.apache.commons</groupId>",
+    "      <artifactId>commons-text</artifactId>",
+    "      <version>1.9</version>",
+    "    </dependency>",
+    "    <dependency>",
+    "      <groupId>managed</groupId>",
+    "      <artifactId>no-version</artifactId>",
+    "    </dependency>",
+    "  </dependencies>",
+    "</project>",
+  ].join("\n");
+  const { packages, direct } = parsePomXml(pom);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["com.fasterxml.jackson.core:jackson-databind"], "2.9.8"); // ${jackson.version} 已解析
+  assert.equal(byName["org.apache.commons:commons-text"], "1.9");
+  assert.ok(!("managed:no-version" in byName)); // 无版本 → 跳过
+  assert.ok(direct.has("org.apache.commons:commons-text"));
+});
+
+test("parseNugetLock:取 resolved 版本,type=Direct 为直接依赖", () => {
+  const lock = {
+    version: 1,
+    dependencies: {
+      "net6.0": {
+        "Newtonsoft.Json": { type: "Direct", requested: "[12.0.1, )", resolved: "12.0.1" },
+        "System.Text.Encodings.Web": { type: "Transitive", resolved: "4.5.0" },
+      },
+    },
+  };
+  const { packages, direct } = parseNugetLock(lock);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["Newtonsoft.Json"], "12.0.1");
+  assert.equal(byName["System.Text.Encodings.Web"], "4.5.0");
+  assert.ok(direct.has("Newtonsoft.Json"));
+  assert.ok(!direct.has("System.Text.Encodings.Web")); // Transitive
+});
+
+test("parseNugetLock:坏输入不抛异常", () => {
+  assert.deepEqual(parseNugetLock("not json").packages, []);
+  assert.deepEqual(parseNugetLock({}).packages, []);
+});

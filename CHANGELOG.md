@@ -12,6 +12,18 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.10.0] - 2026-10-23
+
+### Added
+- **Java and .NET dependency ecosystems** in `deps`/`fix`, built-in:
+  - **Maven** — `pom.xml` `<dependencies>` (package name `groupId:artifactId`), with `${...}`
+    versions resolved from `<properties>`; OSV ecosystem `Maven`. Covers declared/direct deps;
+    full transitive resolution needs the Maven resolver (roadmap).
+  - **.NET** — `packages.lock.json` with resolved versions and `type: Direct` tracking; OSV
+    ecosystem `NuGet`.
+  - Reachability also walks `.java`, `.kt`, `.cs` sources (import-level).
+  - Pure, unit-tested parsers. Shipped ecosystems now: npm, PyPI, Composer, Go, Rust, Ruby, Maven, NuGet.
+
 ## [0.9.0] - 2026-10-23
 
 ### Added
@@ -148,7 +160,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/EnkiHQ/break-anything/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/EnkiHQ/break-anything/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/EnkiHQ/break-anything/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/EnkiHQ/break-anything/compare/v0.6.0...v0.7.0

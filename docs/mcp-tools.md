@@ -17,7 +17,7 @@ and refuse any target not on the authorization allowlist.
 | **Status** | ✅ shipped |
 | **Primary engine** | OSV.dev query API (built-in, no install) |
 | **Additional engines** | Trivy, Grype, pip-audit, govulncheck, cargo-audit, bundler-audit, `composer audit`, OWASP Dependency-Check |
-| **Ecosystems** | shipped: npm, PyPI, Composer (PHP), Go, crates.io (Rust), RubyGems · roadmap: Maven/Gradle, NuGet |
+| **Ecosystems** | shipped: npm, PyPI, Composer (PHP), Go, crates.io (Rust), RubyGems, Maven (Java), NuGet (.NET) · roadmap: Gradle lockfile, full Maven transitive resolution |
 | **Intel overlay** | ✅ CISA KEV (actively exploited), ✅ EPSS (exploit probability) · GitHub Advisory (roadmap) |
 | **SBOM** | Syft / CycloneDX generation + diff |
 | **Signal** | two-tier reachability: `called` (an imported symbol is invoked in your code) > `imported` > `direct` > `transitive`; call-path-to-vulnerable-symbol on the roadmap |

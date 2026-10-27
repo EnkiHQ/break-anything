@@ -26,6 +26,12 @@ export async function loadLockfiles(targetPath) {
   const gemLock = path.join(dir, "Gemfile.lock");
   if (await exists(gemLock)) out.push(await parseGemfileLockFile(gemLock));
 
+  const pom = path.join(dir, "pom.xml");
+  if (await exists(pom)) out.push(await parsePomFile(pom));
+
+  const nugetLock = path.join(dir, "packages.lock.json");
+  if (await exists(nugetLock)) out.push(await parseNugetLockFile(nugetLock));
+
   return { dir, sources: out.filter(Boolean) };
 }
 
@@ -238,6 +244,98 @@ async function parseGemfileLockFile(file) {
     ecosystem: "RubyGems",
     file,
     packages: packages.map((p) => ({ ...p, ecosystem: "RubyGems", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
+}
+
+// ---- Java/Maven: pom.xml(解析 <dependencies> 的直接依赖;${属性} 从 <properties> 解析)----
+// 纯函数,可单测。OSV 的 Maven 包名是 groupId:artifactId。pom 只声明直接依赖,
+// 传递依赖需要跑 Maven 解析器(路线图)。test 作用域仍纳入,但标注在 scope 里。
+export function parsePomXml(text) {
+  // 先收集 <properties> 里的键值,用于解析 ${...} 版本
+  const props = new Map();
+  const propsBlock = (text.match(/<properties>([\s\S]*?)<\/properties>/) || [])[1] || "";
+  for (const m of propsBlock.matchAll(/<([A-Za-z0-9_.-]+)>([^<]+)<\/\1>/g)) {
+    props.set(m[1], m[2].trim());
+  }
+  // project.version / version 常用兜底
+  const projVersion = (text.match(/<project[\s\S]*?<version>([^<]+)<\/version>/) || [])[1];
+
+  const resolve = (v) => {
+    if (!v) return v;
+    let out = v.trim();
+    const pm = out.match(/^\$\{([^}]+)\}$/);
+    if (pm) {
+      const key = pm[1];
+      if (props.has(key)) return props.get(key);
+      if (/project\.version|version/.test(key) && projVersion) return projVersion.trim();
+      return null; // 无法解析的属性 → 跳过该依赖版本
+    }
+    return out;
+  };
+
+  const packages = [];
+  const direct = new Set();
+  const seen = new Set();
+  for (const dep of text.matchAll(/<dependency>([\s\S]*?)<\/dependency>/g)) {
+    const body = dep[1];
+    const g = (body.match(/<groupId>([^<]+)<\/groupId>/) || [])[1];
+    const a = (body.match(/<artifactId>([^<]+)<\/artifactId>/) || [])[1];
+    const vRaw = (body.match(/<version>([^<]+)<\/version>/) || [])[1];
+    if (!g || !a) continue;
+    const version = resolve(vRaw);
+    if (!version) continue; // 版本缺失或无法解析(BOM 管理的版本)→ 跳过
+    const name = `${g.trim()}:${a.trim()}`;
+    const key = `${name}@${version}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    packages.push({ name, version });
+    direct.add(name);
+  }
+  return { packages, direct };
+}
+
+async function parsePomFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages, direct } = parsePomXml(text);
+  return {
+    ecosystem: "Maven",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "Maven", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
+}
+
+// ---- .NET/NuGet: packages.lock.json(含解析后的完整依赖树,type=Direct 为直接依赖)----
+export function parseNugetLock(json) {
+  let data = json;
+  if (typeof json === "string") {
+    try { data = JSON.parse(json); } catch { return { packages: [], direct: new Set() }; }
+  }
+  const packages = [];
+  const direct = new Set();
+  const seen = new Set();
+  const frameworks = (data && data.dependencies) || {};
+  for (const tfm of Object.keys(frameworks)) {
+    const deps = frameworks[tfm] || {};
+    for (const [name, info] of Object.entries(deps)) {
+      const version = info && (info.resolved || info.requested);
+      if (!version) continue;
+      const key = `${name}@${version}`;
+      if (!seen.has(key)) { seen.add(key); packages.push({ name, version }); }
+      if (info && /direct/i.test(info.type || "")) direct.add(name);
+    }
+  }
+  return { packages, direct };
+}
+
+async function parseNugetLockFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages, direct } = parseNugetLock(text);
+  return {
+    ecosystem: "NuGet",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "NuGet", direct: direct.has(p.name) })),
     manifestDirect: direct,
   };
 }
