@@ -39,6 +39,9 @@ const T = {
     sastClean: "✓ No issues found by the static-analysis rules.",
     apiTitle: "Break Anything · API security scan (DAST)",
     apiClean: "✓ No access-control or header issues found.",
+    iacTitle: "Break Anything · infrastructure-as-code scan",
+    iacClean: "✓ No misconfigurations found by the IaC rules.",
+    iacScanned: (n, t) => `${n} IaC files scanned${t ? `  ·  ${t}` : ""}`,
   },
   zh: {
     depsTitle: "Break Anything · 依赖扫描",
@@ -68,6 +71,9 @@ const T = {
     sastClean: "✓ 静态分析规则未发现问题。",
     apiTitle: "Break Anything · API 安全扫描(DAST)",
     apiClean: "✓ 未发现越权/鉴权/响应头问题。",
+    iacTitle: "Break Anything · 基础设施即代码(IaC)扫描",
+    iacClean: "✓ IaC 规则未发现错误配置。",
+    iacScanned: (n, t) => `已扫 ${n} 个 IaC 文件${t ? `  ·  ${t}` : ""}`,
   },
 }[LANG];
 
@@ -215,6 +221,47 @@ export function renderSast(result, { color = true, top } = {}) {
     lines.push(`${sev} ${c.bold}${f.rule}${c.reset} ${c.gray}${tags}${c.reset}`);
     lines.push(`  ${c.cyan}${f.location}${c.reset}  ${c.gray}${f.message.slice(0, 100)}${c.reset}`);
     if (f.snippet) lines.push(`  ${c.gray}${f.snippet.slice(0, 90)}${c.reset}`);
+    lines.push("");
+  }
+  if (shown.length < result.findings.length) {
+    lines.push(`${c.gray}${T.more(result.findings.length - shown.length)}${c.reset}`);
+    lines.push("");
+  }
+
+  const s = result.summary;
+  const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
+  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${parts}`);
+  return lines.join("\n");
+}
+
+// ---- IaC ----
+export function renderIac(result, { color = true, top } = {}) {
+  const c = palette(color);
+  const lines = [];
+  lines.push(`${c.bold}${T.iacTitle}${c.reset}`);
+
+  if (!result.ok) {
+    lines.push("");
+    lines.push(`${c.yellow}${result.message}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  const types = Object.entries(result.byType || {}).map(([k, v]) => `${k} ${v}`).join("  ");
+  lines.push(`${c.gray}${result.target}  ·  ${T.iacScanned(result.scanned, types)}${c.reset}`);
+  lines.push("");
+  if (!result.findings.length) {
+    lines.push(`${c.green}${T.iacClean}${c.reset}`);
+    lines.push(`${c.gray}${T.cleanNote}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  const shown = top && result.findings.length > top ? result.findings.slice(0, top) : result.findings;
+  for (const f of shown) {
+    const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
+    const tags = [f.kind, f.cwe].filter(Boolean).join(" · ");
+    lines.push(`${sev} ${c.bold}${f.title}${c.reset} ${c.gray}${tags}${c.reset}`);
+    lines.push(`  ${c.cyan}${f.location}${c.reset}`);
+    if (f.evidence) lines.push(`  ${c.gray}${f.evidence}${c.reset}`);
     lines.push("");
   }
   if (shown.length < result.findings.length) {

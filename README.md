@@ -76,6 +76,7 @@ npx -y break-anything deps ./              # dependency CVEs, ranked by reachabi
 npx -y break-anything secrets ./ --history # leaked keys in the tree and full git history
 npx -y break-anything image my-svc:latest  # OS + app CVEs in a container image
 npx -y break-anything sast ./src           # static code analysis (injection, authz, SSRF…)
+npx -y break-anything iac ./deploy         # IaC misconfigs (Dockerfile/K8s/Terraform) — no install
 npx -y break-anything api http://localhost:4000 --config accounts.json  # IDOR/authz on a running API (authorized)
 ```
 
@@ -128,7 +129,7 @@ engine.
 ## The arsenal
 
 Organized by scan category — the language security teams speak — each orchestrating tools that
-already run in real pipelines. ✅ shipped in 0.4.0 · 🧭 on the roadmap.
+already run in real pipelines. ✅ shipped in 0.5.0 · 🧭 on the roadmap.
 
 ### ✅ Shipped today
 
@@ -136,12 +137,13 @@ already run in real pipelines. ✅ shipped in 0.4.0 · 🧭 on the roadmap.
 - **Secrets** — leaked keys/tokens/private keys in the working tree and full git history, redacted. Engines: [Gitleaks](https://github.com/gitleaks/gitleaks), [TruffleHog](https://github.com/trufflesecurity/trufflehog).
 - **Container images** — OS + app CVEs, Dockerfile smells, secrets in layers. Engines: [Trivy](https://github.com/aquasecurity/trivy), [Grype](https://github.com/anchore/grype), [Hadolint](https://github.com/hadolint/hadolint).
 - **Static code (SAST)** — injection, broken access control, insecure deserialization, SSRF, hardcoded secrets — each with file/line, CWE/OWASP tags, and the offending snippet. Engine: [Semgrep](https://semgrep.dev).
+- **Infrastructure as Code (IaC)** — Dockerfile, Kubernetes, and Terraform misconfigurations (root containers, privileged pods, world-open CIDRs, public buckets, baked-in secrets), each with file/line, CWE, and a fix. Built in — no engine to install.
 - **API security (DAST)** — probe a *running* API for broken object-level authorization (IDOR/BOLA), missing auth, and missing security headers, each proven with the reproducing request. Built-in; off by default, authorized targets only.
 
 ### 🧭 On the roadmap
 
 - **More SAST engines** — [CodeQL](https://codeql.github.com), SonarQube CE, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs (Java), security-code-scan (.NET), retire.js (frontend JS).
-- **Infrastructure & Kubernetes (IaC)** — public buckets, open ports, over-broad IAM, misconfigured clusters — before `apply`. [Checkov](https://www.checkov.io), tfsec, Terrascan, [KICS](https://kics.io), [Kubescape](https://github.com/kubescape/kubescape), kube-bench, [Falco](https://falco.org) (runtime).
+- **Deeper IaC & cloud** — opt-in [Checkov](https://www.checkov.io) / tfsec / [KICS](https://kics.io) / [Kubescape](https://github.com/kubescape/kubescape) backends, plus CloudFormation, ARM/Bicep, Ansible and full CIS benchmarks on top of the built-in rules.
 - **More DAST & attack surface** — OWASP Top 10, content/parameter discovery, XSS, injection against your authorized app, on top of today's authorization prober. [OWASP ZAP](https://www.zaproxy.org), [Nuclei](https://github.com/projectdiscovery/nuclei), [Nikto](https://github.com/sullo/nikto), [ffuf](https://github.com/ffuf/ffuf), [Katana](https://github.com/projectdiscovery/katana), [Dalfox](https://github.com/hahwul/dalfox), [sqlmap](https://sqlmap.org); surface mapping via [Nmap](https://nmap.org) + [Amass](https://github.com/owasp-amass/amass) + ProjectDiscovery.
 - **More API checks** — mass assignment, excessive data exposure, OpenAPI-driven fuzzing (OWASP API Top 10). [Schemathesis](https://github.com/schemathesis/schemathesis), ZAP.
 - **Offensive / exploitation** — *authorized pentest only; gated, off by default, written permission required.* Prove exploitability on targets you own. [Metasploit](https://www.metasploit.com), sqlmap, [Hydra](https://github.com/vanhauser-thc/thc-hydra), [Hashcat](https://hashcat.net), [BloodHound](https://github.com/SpecterOps/BloodHound) + Impacket (Active Directory), [OpenVAS](https://www.openvas.org).

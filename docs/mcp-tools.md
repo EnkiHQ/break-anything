@@ -4,9 +4,9 @@ Break Anything is one MCP interface over a deep arsenal of industry-standard sca
 MCP interface describes *what the agent wants to learn*; a provider decides *how* to answer. This
 page is the exhaustive catalog, organized by scan category.
 
-Legend: **✅ shipped (0.4.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `api_scan`)** ·
-**🧭 roadmap**. Dynamic (traffic-sending) tools are **off by default** and refuse any target not on
-the authorization allowlist.
+Legend: **✅ shipped (0.5.0: `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
+`api_scan`)** · **🧭 roadmap**. Dynamic (traffic-sending) tools are **off by default** and refuse
+any target not on the authorization allowlist.
 
 ---
 
@@ -60,14 +60,23 @@ the authorization allowlist.
 | **MCP tool** | `sast_scan(path, config?)` |
 | **CLI** | `brk sast <path> [--json] [--config=<ruleset>] [--top=N]` |
 
-## 🧭 Infrastructure as Code (IaC) — `iac_scan`
+## ✅ Infrastructure as Code (IaC) — `iac_scan`
 
 | | |
 | --- | --- |
-| **Engines** | Checkov, tfsec, Terrascan, KICS, Kubescape, kube-bench, kubesec, Falco (runtime) |
-| **Targets** | Terraform, CloudFormation, Kubernetes/Helm, Dockerfile, ARM/Bicep, Ansible |
-| **Finds** | public buckets, open security groups, missing encryption, over-broad IAM, privileged containers |
-| **Planned tool** | `iac_scan(path, framework?)` |
+| **Status** | ✅ shipped — **built in, no external engine** |
+| **Primary engine** | built-in rule set (Node, no install) |
+| **Roadmap engines** | Checkov, tfsec, Terrascan, KICS, Kubescape, kube-bench (opt-in depth) |
+| **Targets** | Dockerfile, Kubernetes/Helm manifests, Terraform (HCL) |
+| **Finds** | runs-as-root / no `USER`, `:latest` images, piped remote shell, baked-in secrets (Docker); privileged containers, host namespaces, dangerous capabilities (K8s); world-open CIDR, public buckets, disabled encryption, hardcoded secrets (Terraform) |
+| **Roadmap finds** | CloudFormation/ARM/Bicep/Ansible, full CIS benchmarks, over-broad IAM |
+| **MCP tool** | `iac_scan(path)` |
+| **CLI** | `brk iac <path> [--json] [--top=N]` |
+
+The built-in rules target the most common high-impact misconfigurations with low false positives
+(for example, it ignores Terraform `var.*` references when flagging hardcoded secrets). For
+exhaustive policy-as-code, the roadmap adds opt-in Checkov/Trivy/KICS backends behind the same
+finding envelope.
 
 ## 🧭 Cloud posture (CSPM) — `cloud_audit`
 

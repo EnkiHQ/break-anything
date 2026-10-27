@@ -6,6 +6,7 @@ import { scanSecrets } from "./secrets.js";
 import { scanImage } from "./image.js";
 import { scanSast } from "./sast.js";
 import { scanApi } from "./api.js";
+import { scanIac } from "./iac.js";
 
 const TOOLS = [
   {
@@ -77,6 +78,22 @@ const TOOLS = [
     },
   },
   {
+    name: "iac_scan",
+    description:
+      "Scan infrastructure-as-code for high-impact misconfigurations: Dockerfiles (root user, " +
+      ":latest, piped remote shell, baked-in secrets), Kubernetes manifests (privileged containers, " +
+      "host namespaces, dangerous capabilities), and Terraform (world-open CIDRs, public buckets, " +
+      "disabled encryption, hardcoded secrets). Built in, no external engine required. Each finding " +
+      "has file/line, CWE, evidence, and a fix. Scan only code you own or are authorized to test.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Absolute path to the directory (or a single IaC file) to scan." },
+      },
+      required: ["path"],
+    },
+  },
+  {
     name: "api_scan",
     description:
       "Dynamic probe of a running HTTP API for broken object-level authorization (IDOR/BOLA), " +
@@ -104,7 +121,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.4.0" },
+    { name: "break-anything", version: "0.5.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -126,6 +143,9 @@ export async function startMcpServer() {
       } else if (name === "sast_scan") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await scanSast(args.path, args.config ? { config: args.config } : {});
+      } else if (name === "iac_scan") {
+        if (!strArg(args.path)) return bad("缺少必填参数 path。");
+        result = await scanIac(args.path);
       } else if (name === "api_scan") {
         if (!strArg(args.baseUrl)) return bad("缺少必填参数 baseUrl。");
         result = await scanApi({ baseUrl: args.baseUrl, accounts: args.accounts || {}, idorPaths: args.idorPaths || [] });

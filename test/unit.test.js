@@ -200,3 +200,81 @@ test("decideIdor:空响应体不算泄露", () => {
   const v = decideIdor({ crossStatus: 200, crossBody: "", truthBody: "", baselineBody: "" });
   assert.equal(v.idor, false);
 });
+
+// ---- IaC 配置扫描(纯函数,不触文件系统)----
+import { classifyIac, scanDockerfile, scanKubernetes, scanTerraform } from "../src/iac.js";
+
+test("classifyIac:按文件名/内容归类", () => {
+  assert.equal(classifyIac("Dockerfile", ""), "dockerfile");
+  assert.equal(classifyIac("api.dockerfile", ""), "dockerfile");
+  assert.equal(classifyIac("main.tf", ""), "terraform");
+  assert.equal(classifyIac("deploy.yaml", "apiVersion: apps/v1\nkind: Deployment\n"), "kubernetes");
+  assert.equal(classifyIac("random.yaml", "foo: bar\n"), null); // 无 apiVersion/kind 不当 k8s
+  assert.equal(classifyIac("notes.txt", ""), null);
+});
+
+test("scanDockerfile:root + latest + 管道执行 + 硬编码密钥", () => {
+  const df = [
+    "FROM node:latest",
+    "RUN curl https://get.example.sh | sh",
+    "ENV API_KEY=sk-abc123def456",
+    'CMD ["node","app.js"]',
+  ].join("\n");
+  const out = scanDockerfile(df, "Dockerfile");
+  const rules = out.map((f) => f.rule);
+  assert.ok(rules.includes("docker-latest-tag"));
+  assert.ok(rules.includes("docker-remote-pipe-shell"));
+  assert.ok(rules.includes("docker-hardcoded-secret"));
+  assert.ok(rules.includes("docker-no-user")); // 没有 USER → 以 root 运行
+  // 密钥值被脱敏,不回显
+  const secret = out.find((f) => f.rule === "docker-hardcoded-secret");
+  assert.ok(!secret.evidence.includes("sk-abc123def456"));
+});
+
+test("scanDockerfile:固定版本 + 非 root 用户 → 干净", () => {
+  const df = "FROM node:18.19.0\nUSER appuser\nCMD [\"node\",\"app.js\"]\n";
+  const out = scanDockerfile(df, "Dockerfile");
+  assert.equal(out.length, 0);
+});
+
+test("scanKubernetes:privileged / hostNetwork / 危险 capability", () => {
+  const y = [
+    "apiVersion: v1",
+    "kind: Pod",
+    "spec:",
+    "  hostNetwork: true",
+    "  containers:",
+    "    - image: nginx:latest",
+    "      securityContext:",
+    "        privileged: true",
+    "        capabilities:",
+    "          add:",
+    "            - SYS_ADMIN",
+  ].join("\n");
+  const out = scanKubernetes(y, "pod.yaml");
+  const rules = out.map((f) => f.rule);
+  assert.ok(rules.includes("k8s-privileged"));
+  assert.ok(rules.includes("k8s-host-network"));
+  assert.ok(rules.includes("k8s-dangerous-capability"));
+  assert.ok(rules.includes("k8s-latest-tag"));
+});
+
+test("scanTerraform:开放 CIDR / 公开桶 / 硬编码密钥,且忽略变量引用", () => {
+  const tf = [
+    'resource "aws_security_group" "x" {',
+    "  ingress { cidr_blocks = [\"0.0.0.0/0\"] }",
+    "}",
+    'resource "aws_s3_bucket" "b" { acl = "public-read" }',
+    '  db_password = "hunter2plaintext"',
+    '  api_token   = var.api_token',
+  ].join("\n");
+  const out = scanTerraform(tf, "main.tf");
+  const rules = out.map((f) => f.rule);
+  assert.ok(rules.includes("tf-open-cidr"));
+  assert.ok(rules.includes("tf-public-bucket"));
+  assert.ok(rules.includes("tf-hardcoded-secret"));
+  // var.* 引用不算硬编码
+  assert.equal(out.filter((f) => f.rule === "tf-hardcoded-secret").length, 1);
+  const secret = out.find((f) => f.rule === "tf-hardcoded-secret");
+  assert.ok(!secret.evidence.includes("hunter2plaintext"));
+});

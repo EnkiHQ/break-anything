@@ -6,7 +6,7 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.4.0)
+## Shipped (0.5.0)
 
 - **Supply chain / dependencies (SCA)** — npm, Composer (PHP), pip; OSV lookup, import-based
   reachability heuristic, EPSS, fix versions.
@@ -14,10 +14,13 @@ as the shipped scanners.
 - **Container images** — via Trivy.
 - **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,
   with CWE/OWASP tags and the offending snippet.
+- **Infrastructure as Code (IaC)** — built-in, no external engine: Dockerfile, Kubernetes, and
+  Terraform misconfigurations (root containers, privileged pods, world-open CIDRs, public buckets,
+  baked-in secrets) with file/line, CWE, and a fix.
 - **API security (DAST)** — dynamic probe of a running API for broken object-level authorization
   (IDOR/BOLA), missing authentication, and missing security headers, each with the reproducing
   request as proof. Off by default; authorized targets only.
-- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `api_scan`.
+- **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`, `api_scan`.
 
 ## Next
 
@@ -27,8 +30,8 @@ as the shipped scanners.
   symbol on a real call path", and rank with EPSS + CISA KEV.
 - **More DAST checks** — injection, SSRF, auth/session flaws, plus Nuclei templates and
   OpenAPI-driven fuzzing (Schemathesis) on top of today's authorization prober.
-- **IaC** — Checkov / tfsec / Terrascan / KICS over Terraform, CloudFormation, Kubernetes/Helm,
-  Dockerfile.
+- **Deeper IaC** — opt-in Checkov / tfsec / KICS backends plus CloudFormation, ARM/Bicep, Ansible
+  and full CIS benchmarks on top of the built-in rules.
 
 ## Later
 

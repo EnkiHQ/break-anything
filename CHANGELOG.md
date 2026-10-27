@@ -8,9 +8,24 @@ All notable changes to Break Anything are documented here. This project follows
 ### Planned
 - More SAST engines (CodeQL, Bandit, gosec, Brakeman, Find-Sec-Bugs, .NET, frontend).
 - More DAST checks (injection, SSRF, auth bypass) and Nuclei template support.
-- IaC scanner (Terraform / Dockerfile / Kubernetes) with Kubescape.
+- Optional deep IaC coverage via Checkov / Trivy / KICS on top of the built-in rules.
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - CISA KEV enrichment in `deps`.
+
+## [0.5.0] - 2026-10-23
+
+### Added
+- `iac` — infrastructure-as-code misconfiguration scan, **built in, no external engine required**.
+  Covers the common high-impact issues across three formats:
+  - **Dockerfile** — runs as root / no `USER`, `:latest` base image, remote script piped into a
+    shell, `ADD` of a remote URL, hardcoded secrets in `ENV`/`ARG` (CWE-250/494/798/1104).
+  - **Kubernetes** — privileged containers, `allowPrivilegeEscalation`, host namespaces
+    (`hostNetwork`/`hostPID`/`hostIPC`), `runAsNonRoot: false`, dangerous capabilities, `:latest`
+    images (CWE-250/668/1104).
+  - **Terraform** — world-open CIDR (`0.0.0.0/0`), public-read storage ACL, disabled encryption,
+    hardcoded secrets (CWE-284/311/732/798).
+  Each finding has file/line, CWE, redacted evidence, and a fix. Secret values are never echoed.
+- `iac_scan` MCP tool.
 
 ## [0.4.0] - 2026-10-23
 
@@ -57,7 +72,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/EnkiHQ/break-anything/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/EnkiHQ/break-anything/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/EnkiHQ/break-anything/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/EnkiHQ/break-anything/compare/v0.1.0...v0.2.0
