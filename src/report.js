@@ -24,6 +24,9 @@ const T = {
     findings: "findings",
     reachable: "reachable",
     invoked: "called",
+    kev: "KEV",
+    kevRansom: "KEV · ransomware",
+    kevNote: "KEV = CISA Known Exploited: attackers are using this in the wild right now. Fix these first.",
     skipped: (n) => `(${n} packages failed to query, skipped)`,
     heuristic: "Reachability is a heuristic: \"called\" means an imported symbol is invoked in your code — still not proof the specific vulnerable function runs.",
     secretsTitle: "Break Anything · secret scan",
@@ -64,6 +67,9 @@ const T = {
     findings: "条",
     reachable: "可达",
     invoked: "被调用",
+    kev: "KEV在野利用",
+    kevRansom: "KEV·勒索",
+    kevNote: "KEV = CISA 已知被在野利用:攻击者此刻正在打它。优先修这些。",
     skipped: (n) => `(${n} 个包查询失败,已跳过)`,
     heuristic: "可达性为启发式:「被调用」指导入的符号在你代码里被调用——仍不等于公告里那个具体脆弱函数被执行。",
     secretsTitle: "Break Anything · 密钥扫描",
@@ -125,7 +131,8 @@ export function renderHuman(result, { color = true, top } = {}) {
     const fix = f.fixedVersions.length
       ? `${c.green}${T.fix(f.fixedVersions.join(", "))}${c.reset}`
       : `${c.red}${T.noFix}${c.reset}`;
-    lines.push(`${sev} ${c.bold}${f.package}@${f.version}${c.reset} ${c.gray}(${f.ecosystem})${c.reset}`);
+    const kevBadge = f.kev ? ` ${c.red}${c.bold}[${f.kevRansomware ? T.kevRansom : T.kev}]${c.reset}` : "";
+    lines.push(`${sev} ${c.bold}${f.package}@${f.version}${c.reset} ${c.gray}(${f.ecosystem})${c.reset}${kevBadge}`);
     lines.push(`  ${c.cyan}${idLabel}${c.reset}  ·  ${T.reach[f.reachability]}  ·  ${T.epss(f.epss)}  ·  ${fix}`);
     if (f.summary) lines.push(`  ${c.gray}${f.summary.replace(/\s+/g, " ").slice(0, 120)}${c.reset}`);
     lines.push("");
@@ -141,8 +148,10 @@ export function renderHuman(result, { color = true, top } = {}) {
     .map(([k, v]) => `${k} ${v}`)
     .join("  ");
   const reachPart = `${s.reachable} ${T.reachable}` + (s.called ? ` (${s.called} ${T.invoked})` : "");
-  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${reachPart}  ·  ${sevParts}`);
+  const kevPart = s.kev ? `  ·  ${c.red}${s.kev} ${T.kev}${c.reset}` : "";
+  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${reachPart}${kevPart}  ·  ${sevParts}`);
   if (result.errors?.length) lines.push(`${c.gray}${T.skipped(result.errors.length)}${c.reset}`);
+  if (s.kev) lines.push(`${c.red}${T.kevNote}${c.reset}`);
   lines.push(`${c.gray}${T.heuristic}${c.reset}`);
   return lines.join("\n");
 }
@@ -356,7 +365,8 @@ export function renderFix(result, { color = true } = {}) {
     const reachLabel = T.reach[reachName(u.maxReach)] || "";
     const tag = `${reachLabel} · ${u.maxSeverity}`;
     const sevc = SEV_COLOR[u.maxSeverity] || "";
-    lines.push(`${c.bold}${i + 1}.${c.reset} ${sevc}[${tag}]${c.reset} ${c.bold}${u.package}${c.reset} ${u.from} ${c.gray}→${c.reset} ${c.green}${u.to}${c.reset}  ${c.gray}${T.fixResolves(u.resolves)}${c.reset}`);
+    const kevBadge = u.kev ? ` ${c.red}${c.bold}[${T.kev}]${c.reset}` : "";
+    lines.push(`${c.bold}${i + 1}.${c.reset} ${sevc}[${tag}]${c.reset}${kevBadge} ${c.bold}${u.package}${c.reset} ${u.from} ${c.gray}→${c.reset} ${c.green}${u.to}${c.reset}  ${c.gray}${T.fixResolves(u.resolves)}${c.reset}`);
     lines.push(`   ${c.cyan}${u.command}${c.reset}`);
   });
 
@@ -365,7 +375,8 @@ export function renderFix(result, { color = true } = {}) {
     lines.push(`${c.bold}${c.yellow}${T.fixNoFixHead}${c.reset}`);
     for (const n of result.noFix) {
       const sev = `${SEV_COLOR[n.severity] || ""}${n.severity.padEnd(8)}${c.reset}`;
-      lines.push(`  ${sev} ${c.bold}${n.package}@${n.version}${c.reset} ${c.cyan}${n.cve}${c.reset} ${c.gray}(${T.reach[n.reachability] || n.reachability})${c.reset}`);
+      const kevBadge = n.kev ? ` ${c.red}${c.bold}[${T.kev}]${c.reset}` : "";
+      lines.push(`  ${sev} ${c.bold}${n.package}@${n.version}${c.reset} ${c.cyan}${n.cve}${c.reset} ${c.gray}(${T.reach[n.reachability] || n.reachability})${c.reset}${kevBadge}`);
     }
     lines.push(`  ${c.gray}${T.fixNoFixHint}${c.reset}`);
   }

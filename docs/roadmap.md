@@ -6,10 +6,10 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.7.0)
+## Shipped (0.8.0)
 
 - **Supply chain / dependencies (SCA)** — npm, Composer (PHP), pip; OSV lookup, two-tier
-  reachability (`called` > `imported`), EPSS, fix versions.
+  reachability (`called` > `imported`), EPSS, **CISA KEV (known-exploited)**, fix versions.
 - **Secrets** — working tree + git history, redacted output.
 - **Container images** — via Trivy.
 - **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,
@@ -29,8 +29,9 @@ as the shipped scanners.
 
 - **More SAST engines** — CodeQL, Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs
   (Java), security-code-scan (.NET), retire.js (frontend) — broaden language/stack coverage.
-- **Exploitability engine** — reachability is now two-tier (`called` > `imported`); next is a real
-  call graph to the specific vulnerable symbol named in the advisory, ranked with EPSS + CISA KEV.
+- **Exploitability engine** — reachability is two-tier (`called` > `imported`) and findings now
+  carry EPSS + CISA KEV; next is a real call graph to the specific vulnerable symbol named in the
+  advisory.
 - **More DAST checks** — injection, SSRF, auth/session flaws, plus Nuclei templates and
   OpenAPI-driven fuzzing (Schemathesis) on top of today's authorization prober.
 - **Deeper IaC** — opt-in Checkov / tfsec / KICS backends plus CloudFormation, ARM/Bicep, Ansible

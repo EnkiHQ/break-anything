@@ -396,3 +396,110 @@ test("planFix:pip 与 composer 的升级命令", () => {
   assert.equal(byPkg["flask"], 'pip install "flask==1.0"');
   assert.equal(byPkg["monolog/monolog"], "composer require monolog/monolog:1.25.0");
 });
+
+// ---- CISA KEV 富化(纯函数,不触网)----
+import { indexKev } from "../src/kev.js";
+
+test("indexKev:把 CISA 目录归一化为 Map,识别勒索软件标记", () => {
+  const catalog = {
+    vulnerabilities: [
+      { cveID: "CVE-2021-44228", vulnerabilityName: "Log4Shell", dateAdded: "2021-12-10", knownRansomwareCampaignUse: "Known" },
+      { cveID: "cve-2017-0144", vulnerabilityName: "EternalBlue", dateAdded: "2022-02-10", knownRansomwareCampaignUse: "Unknown" },
+      { vendorProject: "x" }, // 无 cveID → 跳过
+    ],
+  };
+  const m = indexKev(catalog);
+  assert.equal(m.size, 2);
+  assert.equal(m.get("CVE-2021-44228").ransomware, true);
+  assert.equal(m.get("CVE-2017-0144").ransomware, false); // 大小写归一
+  assert.equal(m.get("CVE-2017-0144").dateAdded, "2022-02-10");
+});
+
+test("indexKev:坏/空输入不抛异常", () => {
+  assert.equal(indexKev(null).size, 0);
+  assert.equal(indexKev({}).size, 0);
+  assert.equal(indexKev({ vulnerabilities: "nope" }).size, 0);
+});
+
+test("planFix:KEV 在野利用项优先于同可达性的非 KEV 项", () => {
+  const findings = [
+    { package: "a", version: "1.0.0", ecosystem: "npm", reachability: "imported", severity: "HIGH", kev: false, cve: "CVE-A", fixedVersions: ["1.1.0"] },
+    { package: "b", version: "1.0.0", ecosystem: "npm", reachability: "imported", severity: "HIGH", kev: true, cve: "CVE-B", fixedVersions: ["1.1.0"] },
+  ];
+  const plan = planFix(findings);
+  // 同为 imported+HIGH,但 b 是 KEV → 排前面
+  assert.equal(plan.upgrades[0].package, "b");
+  assert.equal(plan.upgrades[0].kev, true);
+  assert.equal(plan.summary.kevCount, 1);
+});
+
+// ---- 新生态 lockfile 解析(纯函数,不触文件系统)----
+import { parseGoModText, parseCargoLockText, parseCargoTomlDirect, parseGemfileLockText } from "../src/lockfiles.js";
+
+test("parseGoModText:require 块 + 单行,去 v 前缀,indirect 归为非直接", () => {
+  const text = [
+    "module example.com/app",
+    "go 1.21",
+    "require (",
+    "\tgithub.com/gin-gonic/gin v1.6.0",
+    "\tgolang.org/x/text v0.3.0 // indirect",
+    ")",
+    "require github.com/pkg/errors v0.9.1",
+  ].join("\n");
+  const { packages, direct } = parseGoModText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["github.com/gin-gonic/gin"], "1.6.0"); // 去掉了 v
+  assert.equal(byName["golang.org/x/text"], "0.3.0");
+  assert.equal(byName["github.com/pkg/errors"], "0.9.1");
+  assert.ok(direct.has("github.com/gin-gonic/gin"));
+  assert.ok(direct.has("github.com/pkg/errors"));
+  assert.ok(!direct.has("golang.org/x/text")); // indirect
+});
+
+test("parseCargoLockText + parseCargoTomlDirect", () => {
+  const lock = [
+    '[[package]]',
+    'name = "smallvec"',
+    'version = "0.6.13"',
+    '',
+    '[[package]]',
+    'name = "libc"',
+    'version = "0.2.100"',
+  ].join("\n");
+  const { packages } = parseCargoLockText(lock);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["smallvec"], "0.6.13");
+  assert.equal(byName["libc"], "0.2.100");
+
+  const toml = '[package]\nname = "app"\n\n[dependencies]\nsmallvec = "0.6"\nserde = { version = "1" }\n';
+  const direct = parseCargoTomlDirect(toml);
+  assert.ok(direct.has("smallvec"));
+  assert.ok(direct.has("serde"));
+  assert.ok(!direct.has("name")); // [package] 段里的 name 不算依赖
+});
+
+test("parseGemfileLockText:specs 为包,DEPENDENCIES 为直接依赖", () => {
+  const text = [
+    "GEM",
+    "  remote: https://rubygems.org/",
+    "  specs:",
+    "    actionpack (5.0.0)",
+    "      actionview (= 5.0.0)",
+    "    rack (2.0.1)",
+    "",
+    "PLATFORMS",
+    "  ruby",
+    "",
+    "DEPENDENCIES",
+    "  rails",
+    "  rack (~> 2.0)",
+  ].join("\n");
+  const { packages, direct } = parseGemfileLockText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["actionpack"], "5.0.0");
+  assert.equal(byName["rack"], "2.0.1");
+  assert.ok(!("actionview" in byName)); // 6 空格的子依赖约束不算解析出的包
+  assert.ok(direct.has("rack"));
+  assert.ok(direct.has("rails"));
+  assert.ok(!direct.has("actionpack")); // 不在 DEPENDENCIES 里
+});

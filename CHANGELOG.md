@@ -10,7 +10,21 @@ All notable changes to Break Anything are documented here. This project follows
 - More DAST checks (injection, SSRF, auth bypass) and Nuclei template support.
 - Optional deep IaC coverage via Checkov / Trivy / KICS on top of the built-in rules.
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
-- CISA KEV enrichment in `deps`; call-graph reachability to the vulnerable symbol.
+- Call-graph reachability to the specific vulnerable symbol.
+
+## [0.8.0] - 2026-10-23
+
+### Added
+- **CISA KEV enrichment** for `deps` and `fix`. Every finding is now checked against the CISA Known
+  Exploited Vulnerabilities catalog — the authoritative "attackers are using this *right now*"
+  signal (a fact, not a probability like EPSS).
+  - Findings carry `kev` and `kevRansomware`; a red `[KEV]` badge shows in the terminal and a KEV
+    count appears in the summary.
+  - KEV is factored into prioritization right after reachability (before severity/EPSS), in both the
+    `deps` ranking and the `fix` plan — so a reachable, actively-exploited CVE floats to the very top.
+  - Catalog is fetched once per run, cached, and degrades gracefully to "no KEV info" if unreachable.
+- `kev.js` with a pure, unit-tested catalog indexer (correctly distinguishes `Known` ransomware use
+  from `Unknown`).
 
 ## [0.7.0] - 2026-10-23
 
@@ -113,7 +127,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/EnkiHQ/break-anything/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/EnkiHQ/break-anything/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/EnkiHQ/break-anything/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/EnkiHQ/break-anything/compare/v0.4.0...v0.5.0

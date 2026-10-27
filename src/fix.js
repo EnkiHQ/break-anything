@@ -79,6 +79,7 @@ export function planFix(findings = []) {
           maxReach: fixable.reduce((m, f) => Math.max(m, reachRank(f.reachability)), 0),
           maxSeverity: topSeverity(fixable),
           maxEpss: fixable.reduce((m, f) => Math.max(m, f.epss || 0), 0),
+          kev: fixable.some((f) => f.kev),
         });
       } else {
         unfixable.push(...fixable);
@@ -89,18 +90,22 @@ export function planFix(findings = []) {
       noFix.push({
         package: g.package, version: g.version, ecosystem: g.ecosystem,
         cve: f.cve || f.id, severity: f.severity, reachability: f.reachability,
+        kev: !!f.kev,
         summary: (f.summary || "").replace(/\s+/g, " ").slice(0, 120),
       });
     }
   }
 
+  // 排序:可达性 → KEV(在野利用) → 严重度 → 能关的 CVE 数 → EPSS
   upgrades.sort((a, b) =>
     (b.maxReach - a.maxReach) ||
+    ((b.kev ? 1 : 0) - (a.kev ? 1 : 0)) ||
     (severityRank(b.maxSeverity) - severityRank(a.maxSeverity)) ||
     (b.resolves - a.resolves) ||
     (b.maxEpss - a.maxEpss));
   noFix.sort((a, b) =>
     (reachRank(b.reachability) - reachRank(a.reachability)) ||
+    ((b.kev ? 1 : 0) - (a.kev ? 1 : 0)) ||
     (severityRank(b.severity) - severityRank(a.severity)));
 
   return {
@@ -110,6 +115,7 @@ export function planFix(findings = []) {
       upgradeCount: upgrades.length,
       resolvedVulns: upgrades.reduce((n, u) => n + u.resolves, 0),
       noFixCount: noFix.length,
+      kevCount: upgrades.filter((u) => u.kev).length + noFix.filter((n) => n.kev).length,
     },
   };
 }
