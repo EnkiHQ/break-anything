@@ -155,7 +155,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.12.0" },
+    { name: "break-anything", version: "0.13.0" },
     { capabilities: { tools: {} } },
   );
 
