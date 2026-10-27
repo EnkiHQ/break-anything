@@ -56,6 +56,7 @@ npx break-anything setup
 想用终端?一行命令,今天就能跑:
 
 ```bash
+npx -y break-anything ci ./                # 全仓库门禁:deps+secrets+iac+sast,一个退出码
 npx -y break-anything deps ./              # 依赖 CVE,按可达性 + EPSS 排序
 npx -y break-anything secrets ./ --history # 工作区 + 完整 git 历史里的泄露密钥
 npx -y break-anything image my-svc:latest  # 容器镜像的 OS + 应用层 CVE

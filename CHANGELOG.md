@@ -12,6 +12,20 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.14.0] - 2026-10-23
+
+### Added
+- `ci` — one command runs the whole repo gate: **dependencies + secrets + IaC + SAST**, aggregated
+  into a single report, a single combined SARIF, and a single pass/fail exit code. Drop
+  `npx break-anything ci` into a pipeline and you're done.
+  - Gate fails on reachable or known-exploited (KEV) dependency vulns, any leaked secret, and
+    IaC/code issues at or above `--fail-on` (default HIGH). Each failure is explained.
+  - `--fail-on=<critical|high|medium|low>`, `--skip=deps,sast`, `--json`, and `--sarif` (merges every
+    category into one SARIF run for a single GitHub Code Scanning upload).
+  - Missing engines degrade gracefully (e.g. SAST is skipped, not failed, if Semgrep is absent).
+- `ci_scan` MCP tool — an agent can run the full gate in one call.
+- Pure, unit-tested `evaluateGate` / `aggregate` / `toSarifMulti` (61 tests total).
+
 ## [0.13.0] - 2026-10-23
 
 ### Changed
@@ -193,7 +207,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/EnkiHQ/break-anything/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/EnkiHQ/break-anything/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/EnkiHQ/break-anything/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/EnkiHQ/break-anything/compare/v0.10.0...v0.11.0

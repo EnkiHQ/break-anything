@@ -157,3 +157,13 @@ export function toSarif(kind, result, opts = {}) {
   const items = adapter ? adapter(result) : [];
   return buildSarif(items, opts);
 }
+
+// 把多类结果合并成一份 SARIF(用于 ci 聚合)。entries: [{ kind, result }]
+export function toSarifMulti(entries, opts = {}) {
+  const items = [];
+  for (const e of entries || []) {
+    const adapter = ADAPTERS[e.kind];
+    if (adapter && e.result && e.result.ok !== false) items.push(...adapter(e.result));
+  }
+  return buildSarif(items, opts);
+}

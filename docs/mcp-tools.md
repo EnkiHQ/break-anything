@@ -5,8 +5,8 @@ MCP interface describes *what the agent wants to learn*; a provider decides *how
 page is the exhaustive catalog, organized by scan category.
 
 Legend: **✅ shipped (`deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`,
-`api_scan`, `fix_plan`, `sbom_generate`)** · **🧭 roadmap**. Dynamic (traffic-sending) tools are
-**off by default** and refuse any target not on the authorization allowlist.
+`api_scan`, `fix_plan`, `sbom_generate`, `ci_scan`)** · **🧭 roadmap**. Dynamic (traffic-sending)
+tools are **off by default** and refuse any target not on the authorization allowlist.
 
 ---
 

@@ -679,3 +679,72 @@ test("toSarif:sast / iac / secrets 映射到正确位置与 level", () => {
   assert.equal(secrets.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri, "config.js");
   assert.match(secrets.runs[0].results[1].locations[0].physicalLocation.artifactLocation.uri, /git-history@abc123/);
 });
+
+// ---- CI 聚合门禁(纯函数)----
+import { evaluateGate, aggregate } from "../src/ci.js";
+import { toSarifMulti } from "../src/sarif.js";
+
+test("evaluateGate:可达高危 + KEV + 密钥 + IaC 高危 都触发失败", () => {
+  const categories = {
+    deps: { ok: true, findings: [
+      { severity: "HIGH", reachability: "called", kev: false },
+      { severity: "CRITICAL", reachability: "transitive", kev: true }, // 不可达但 KEV
+      { severity: "LOW", reachability: "called", kev: false },         // 低于阈值
+    ] },
+    secrets: { ok: true, findings: [{ rule: "aws-access-key-id" }] },
+    iac: { ok: true, findings: [{ severity: "HIGH" }, { severity: "LOW" }] },
+    sast: { ok: false, message: "no semgrep", findings: [] }, // 跳过的不计入
+  };
+  const g = evaluateGate(categories, { failOn: "HIGH" });
+  assert.equal(g.passed, false);
+  assert.ok(g.reasons.some((r) => /reachable HIGH\+ dependency/.test(r)));
+  assert.ok(g.reasons.some((r) => /KEV/.test(r)));
+  assert.ok(g.reasons.some((r) => /leaked secret/.test(r)));
+  assert.ok(g.reasons.some((r) => /IaC/.test(r)));
+});
+
+test("evaluateGate:只有低于阈值的发现 → 通过", () => {
+  const g = evaluateGate({
+    deps: { ok: true, findings: [{ severity: "MEDIUM", reachability: "called", kev: false }] },
+    iac: { ok: true, findings: [{ severity: "LOW" }] },
+  }, { failOn: "HIGH" });
+  assert.equal(g.passed, true);
+  assert.equal(g.reasons.length, 0);
+});
+
+test("evaluateGate:不可达的高危不触发(但 KEV 永远触发)", () => {
+  const g = evaluateGate({
+    deps: { ok: true, findings: [{ severity: "CRITICAL", reachability: "transitive", kev: false }] },
+  }, { failOn: "HIGH" });
+  assert.equal(g.passed, true);
+});
+
+test("aggregate:汇总总数、按严重度、按类别计数(含跳过)", () => {
+  const a = aggregate({
+    deps: { ok: true, findings: [{ severity: "HIGH" }, { severity: "LOW" }] },
+    secrets: { ok: true, findings: [{ severity: "CRITICAL" }] },
+    sast: { ok: false, message: "no semgrep", findings: [] },
+  });
+  assert.equal(a.total, 3);
+  assert.deepEqual(a.bySeverity, { HIGH: 1, LOW: 1, CRITICAL: 1 });
+  assert.deepEqual(a.counts.deps, { findings: 2 });
+  assert.equal(a.counts.sast.skipped, true);
+});
+
+test("toSarifMulti:合并多类发现为一份 SARIF", () => {
+  const entries = [
+    { kind: "iac", result: { target: "/p", ok: true, findings: [
+      { kind: "dockerfile", rule: "docker-no-user", severity: "MEDIUM", title: "root", location: "Dockerfile:1", cwe: "CWE-250", remediation: "add USER" },
+    ] } },
+    { kind: "secrets", result: { ok: true, findings: [
+      { rule: "aws-access-key-id", severity: "HIGH", source: "worktree", location: "a.txt", line: 2 },
+    ] } },
+    { kind: "sast", result: { ok: false, findings: [] } }, // 跳过
+  ];
+  const sarif = toSarifMulti(entries);
+  assert.equal(sarif.version, "2.1.0");
+  assert.equal(sarif.runs[0].results.length, 2);
+  const ruleIds = sarif.runs[0].tool.driver.rules.map((r) => r.id);
+  assert.ok(ruleIds.includes("docker-no-user"));
+  assert.ok(ruleIds.includes("aws-access-key-id"));
+});

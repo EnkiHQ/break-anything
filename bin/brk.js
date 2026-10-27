@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.13.0";
+const VERSION = "0.14.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -16,6 +16,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk api <baseUrl>      对运行中的 API 做越权(IDOR)/鉴权检测(动态,默认关闭,需授权)
   brk fix [path]         把依赖扫描结果变成按优先级排序的修复计划(含升级命令)
   brk sbom [path]        生成 CycloneDX SBOM(--out 写文件,--diff 旧SBOM 比对变更)
+  brk ci [path]          一条命令跑完 deps+secrets+iac+sast,聚合成一份报告 + 一个门禁退出码
   brk mcp                以 MCP server 模式启动(供 Agent 调用)
   brk doctor             检查运行环境与网络连通性
   brk setup              自动把 Break Anything 注册进本机各家 Agent(--dry-run 预演,--print 仅打印配置)
@@ -30,12 +31,16 @@ deps 选项:
   --no-reachability      跳过源码可达性初判
 secrets 选项:
   --history              加扫 git 历史中的密钥
+ci 选项:
+  --fail-on=<sev>        门禁阈值 critical|high|medium|low(默认 high)
+  --skip=a,b             跳过某些类别(deps,secrets,iac,sast)
+  --sarif                把全部类别合并成一份 SARIF 输出
 
 范围声明:只对你拥有、或已获得明确授权的目标使用。详见 DISCLAIMER.md。
 `;
 
 // 这些 flag 接受一个值,支持 --key=value 与 --key value 两种写法
-const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out"]);
+const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out", "fail-on", "skip"]);
 
 function parseFlags(argv) {
   const flags = {};
@@ -260,6 +265,28 @@ async function main() {
     } else {
       process.stdout.write(json + "\n");
     }
+    return;
+  }
+
+  if (cmd === "ci") {
+    const { flags, positional } = parseFlags(rest);
+    const target = positional[0] || process.cwd();
+    const failOn = (flags["fail-on"] || "HIGH").toUpperCase();
+    const skip = typeof flags.skip === "string" ? flags.skip.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const { runCi } = await import("../src/ci.js");
+    const result = await runCi(target, { failOn, skip });
+    if (flags.sarif) {
+      const { toSarifMulti } = await import("../src/sarif.js");
+      const entries = Object.entries(result.categories).map(([kind, res]) => ({ kind, result: res }));
+      process.stdout.write(JSON.stringify(toSarifMulti(entries), null, 2) + "\n");
+    } else if (flags.json) {
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    } else {
+      const { renderCi } = await import("../src/report.js");
+      const color = flags.color !== false && process.stdout.isTTY;
+      process.stdout.write(renderCi(result, { color }) + "\n");
+    }
+    process.exitCode = result.gate.passed ? 0 : 1;
     return;
   }
 

@@ -409,3 +409,41 @@ export function renderSbomDiff(d, { color = true } = {}) {
   lines.push(`${c.bold}${zh ? "小结" : "summary"}${c.reset} ${zh ? "新增" : "added"} ${s.added}  ·  ${zh ? "移除" : "removed"} ${s.removed}  ·  ${zh ? "变更" : "changed"} ${s.changed}`);
   return lines.join("\n");
 }
+
+// ---- CI 聚合 ----
+export function renderCi(result, { color = true } = {}) {
+  const c = palette(color);
+  const zh = LANG === "zh";
+  const lines = [];
+  lines.push(`${c.bold}Break Anything · ${zh ? "CI 安全门禁" : "CI security gate"}${c.reset}`);
+  lines.push(`${c.gray}${result.target}${c.reset}`);
+  lines.push("");
+
+  const label = { deps: zh ? "依赖" : "deps", secrets: zh ? "密钥" : "secrets", iac: "iac", sast: zh ? "代码(SAST)" : "sast" };
+  for (const [key, cat] of Object.entries(result.categories)) {
+    const name = (label[key] || key).padEnd(12);
+    if (!cat || cat.ok === false) {
+      lines.push(`  ${c.gray}• ${name} ${zh ? "跳过" : "skipped"}${cat && cat.message ? ` (${cat.message.split("\n")[0].slice(0, 60)})` : ""}${c.reset}`);
+      continue;
+    }
+    const fs = cat.findings || [];
+    const worst = fs.reduce((m, f) => Math.max(m, sevOrder(f.severity)), 0);
+    const dot = fs.length === 0 ? c.green : (worst >= 3 ? c.red : c.yellow);
+    lines.push(`  ${dot}●${c.reset} ${name} ${fs.length} ${zh ? "条发现" : "findings"}`);
+  }
+
+  lines.push("");
+  const s = result.summary;
+  const sevParts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
+  lines.push(`${c.bold}${zh ? "合计" : "total"}${c.reset} ${s.total} ${zh ? "条" : "findings"}${sevParts ? `  ·  ${sevParts}` : ""}`);
+  lines.push("");
+
+  const g = result.gate;
+  if (g.passed) {
+    lines.push(`${c.green}${c.bold}✓ ${zh ? "门禁通过" : "GATE PASSED"}${c.reset} ${c.gray}(${zh ? "阈值" : "fail-on"} ${g.failOn})${c.reset}`);
+  } else {
+    lines.push(`${c.red}${c.bold}✗ ${zh ? "门禁失败" : "GATE FAILED"}${c.reset} ${c.gray}(${zh ? "阈值" : "fail-on"} ${g.failOn})${c.reset}`);
+    for (const r of g.reasons) lines.push(`  ${c.red}- ${r}${c.reset}`);
+  }
+  return lines.join("\n");
+}

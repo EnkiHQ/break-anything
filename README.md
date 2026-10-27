@@ -72,6 +72,7 @@ actually reachable in my code, prove the worst one, and give me the fix.
 Prefer the terminal? One command, shipped today:
 
 ```bash
+npx -y break-anything ci ./                # whole-repo gate: deps+secrets+iac+sast, one exit code
 npx -y break-anything deps ./              # dependency CVEs, ranked by reachability + EPSS
 npx -y break-anything secrets ./ --history # leaked keys in the tree and full git history
 npx -y break-anything image my-svc:latest  # OS + app CVEs in a container image

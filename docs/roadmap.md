@@ -23,8 +23,10 @@ as the shipped scanners.
   request as proof. Off by default; authorized targets only.
 - **Fix planning** — turns dependency findings into a prioritized remediation plan: minimal safe
   upgrades ordered by reachability then severity, with the exact `npm`/`pip`/`composer` command.
+- **One-shot CI gate** — `ci` runs deps+secrets+iac+sast in one command with a single pass/fail
+  exit code, combined report, and merged SARIF.
 - **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`, `api_scan`,
-  `fix_plan`.
+  `fix_plan`, `sbom_generate`, `ci_scan`.
 
 ## Next
 

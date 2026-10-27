@@ -9,6 +9,7 @@ import { scanApi } from "./api.js";
 import { scanIac } from "./iac.js";
 import { fixDependencies } from "./fix.js";
 import { generateSbom } from "./sbom.js";
+import { runCi } from "./ci.js";
 
 const TOOLS = [
   {
@@ -75,6 +76,23 @@ const TOOLS = [
       properties: {
         path: { type: "string", description: "Absolute path to the source tree to scan." },
         config: { type: "string", description: "Semgrep ruleset (default p/security-audit)." },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "ci_scan",
+    description:
+      "Run a full repository security gate in one call: dependencies (SCA), secrets, IaC, and SAST, " +
+      "aggregated into one result with a pass/fail gate. The gate fails on reachable or known-exploited " +
+      "(KEV) dependency vulns, any leaked secret, and IaC/code issues at or above the failOn severity " +
+      "(default HIGH). Returns per-category findings, a combined summary, and the gate verdict with reasons.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Absolute path to the project to scan." },
+        failOn: { type: "string", description: "Gate threshold: critical|high|medium|low. Default high." },
+        skip: { type: "array", items: { type: "string" }, description: "Categories to skip: deps, secrets, iac, sast." },
       },
       required: ["path"],
     },
@@ -155,7 +173,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.13.0" },
+    { name: "break-anything", version: "0.14.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -186,6 +204,12 @@ export async function startMcpServer() {
       } else if (name === "sbom_generate") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await generateSbom(args.path);
+      } else if (name === "ci_scan") {
+        if (!strArg(args.path)) return bad("缺少必填参数 path。");
+        result = await runCi(args.path, {
+          failOn: (typeof args.failOn === "string" ? args.failOn : "HIGH").toUpperCase(),
+          skip: Array.isArray(args.skip) ? args.skip : [],
+        });
       } else if (name === "api_scan") {
         if (!strArg(args.baseUrl)) return bad("缺少必填参数 baseUrl。");
         result = await scanApi({ baseUrl: args.baseUrl, accounts: args.accounts || {}, idorPaths: args.idorPaths || [] });
