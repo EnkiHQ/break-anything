@@ -8,8 +8,13 @@ export async function loadLockfiles(targetPath) {
   const dir = await resolveDir(targetPath);
   const out = [];
 
+  // npm 生态:优先 package-lock.json,否则 yarn.lock,否则 pnpm-lock.yaml(避免重复计数)
   const npmLock = path.join(dir, "package-lock.json");
+  const yarnLock = path.join(dir, "yarn.lock");
+  const pnpmLock = path.join(dir, "pnpm-lock.yaml");
   if (await exists(npmLock)) out.push(await parseNpmLock(npmLock, dir));
+  else if (await exists(yarnLock)) out.push(await parseYarnLockFile(yarnLock, dir));
+  else if (await exists(pnpmLock)) out.push(await parsePnpmLockFile(pnpmLock, dir));
 
   const composerLock = path.join(dir, "composer.lock");
   if (await exists(composerLock)) out.push(await parseComposerLock(composerLock, dir));
@@ -336,6 +341,87 @@ async function parseNugetLockFile(file) {
     ecosystem: "NuGet",
     file,
     packages: packages.map((p) => ({ ...p, ecosystem: "NuGet", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
+}
+
+// ---- npm 生态:yarn.lock(经典 v1 与 berry v2+)----
+// 纯函数,可单测。生态仍是 npm;直接依赖从 package.json 取。
+export function parseYarnLockText(text) {
+  const packages = [];
+  const seen = new Set();
+  const lines = text.split(/\r?\n/);
+  let pendingNames = [];
+  for (const raw of lines) {
+    if (/^\s*#/.test(raw) || raw.trim() === "") continue;
+    if (/^\S/.test(raw) && raw.trimEnd().endsWith(":")) {
+      // 头行:可能是逗号分隔的多个 spec。取第一个 spec 的包名。
+      const header = raw.trimEnd().replace(/:$/, "");
+      const specs = header.split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
+      pendingNames = specs.map(yarnSpecName).filter(Boolean);
+      continue;
+    }
+    const vm = raw.match(/^\s+version:?\s+"?([^"\s]+)"?/);
+    if (vm && pendingNames.length) {
+      const version = vm[1];
+      const name = pendingNames[0];
+      const key = `${name}@${version}`;
+      if (!seen.has(key)) { seen.add(key); packages.push({ name, version }); }
+      pendingNames = [];
+    }
+  }
+  return { packages };
+}
+
+function yarnSpecName(spec) {
+  if (!spec) return null;
+  // berry: name@npm:range / @scope/pkg@npm:range
+  const berry = spec.split("@npm:")[0];
+  if (berry !== spec) return berry || null;
+  // 经典 v1: name@range / @scope/pkg@range → 去掉最后一个 @ 之后的部分
+  const at = spec.lastIndexOf("@");
+  if (at <= 0) return spec || null;
+  return spec.slice(0, at);
+}
+
+async function parseYarnLockFile(file, dir) {
+  const text = await readFile(file, "utf8");
+  const { packages } = parseYarnLockText(text);
+  const direct = await readNpmDirect(dir);
+  return {
+    ecosystem: "npm",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "npm", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
+}
+
+// ---- npm 生态:pnpm-lock.yaml(v5/v6/v9 的 packages 键)----
+export function parsePnpmLockText(text) {
+  const packages = [];
+  const seen = new Set();
+  // 命中形如:  /lodash@4.17.4:  |  /@babel/core@7.0.0:  |  /lodash/4.17.4:  |  lodash@4.17.4:
+  // 版本后可能带 peer 后缀 (react@18) —— 截到 ( 或 : 之前。
+  const re = /^\s+\/?(@?[\w.-]+(?:\/[\w.-]+)?)[@/](\d[\w.+-]*)(?:[(:])/;
+  for (const raw of text.split(/\r?\n/)) {
+    const m = raw.match(re);
+    if (!m) continue;
+    const name = m[1];
+    const version = m[2];
+    const key = `${name}@${version}`;
+    if (!seen.has(key)) { seen.add(key); packages.push({ name, version }); }
+  }
+  return { packages };
+}
+
+async function parsePnpmLockFile(file, dir) {
+  const text = await readFile(file, "utf8");
+  const { packages } = parsePnpmLockText(text);
+  const direct = await readNpmDirect(dir);
+  return {
+    ecosystem: "npm",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "npm", direct: direct.has(p.name) })),
     manifestDirect: direct,
   };
 }

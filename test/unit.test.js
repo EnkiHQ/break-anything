@@ -798,3 +798,57 @@ test("mergePolicy:无覆盖时用文件值,默认 failOn HIGH", () => {
   assert.equal(mergePolicy({}, {}).failOn, "HIGH");
   assert.equal(mergePolicy({ failOn: "low" }, {}).failOn, "LOW");
 });
+
+// ---- yarn / pnpm lockfile 解析(纯函数)----
+import { parseYarnLockText, parsePnpmLockText } from "../src/lockfiles.js";
+
+test("parseYarnLockText:经典 v1,多 spec 头行,scoped 包名", () => {
+  const text = [
+    "# yarn lockfile v1",
+    "",
+    'lodash@^4.17.4, lodash@^4.0.0:',
+    '  version "4.17.4"',
+    '  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.4.tgz"',
+    "",
+    '"@babel/core@^7.0.0":',
+    '  version "7.0.1"',
+  ].join("\n");
+  const { packages } = parseYarnLockText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["lodash"], "4.17.4");
+  assert.equal(byName["@babel/core"], "7.0.1");
+});
+
+test("parseYarnLockText:berry v2+(name@npm:range / version: x)", () => {
+  const text = [
+    '"lodash@npm:^4.17.4":',
+    "  version: 4.17.21",
+    "",
+    '"@scope/pkg@npm:^1.2.0":',
+    '  version: "1.2.3"',
+  ].join("\n");
+  const { packages } = parseYarnLockText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["lodash"], "4.17.21");
+  assert.equal(byName["@scope/pkg"], "1.2.3");
+});
+
+test("parsePnpmLockText:兼容 /name@ver、/@scope/name@ver、/name/ver、以及 peer 后缀", () => {
+  const text = [
+    "packages:",
+    "  /lodash@4.17.4:",
+    "    resolution: {integrity: sha512-xxx}",
+    "  /@babel/core@7.0.0:",
+    "    resolution: {integrity: sha512-yyy}",
+    "  /minimist/1.2.0:",
+    "    resolution: {integrity: sha512-zzz}",
+    "  /react-dom@18.2.0(react@18.2.0):",
+    "    resolution: {integrity: sha512-www}",
+  ].join("\n");
+  const { packages } = parsePnpmLockText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["lodash"], "4.17.4");
+  assert.equal(byName["@babel/core"], "7.0.0");
+  assert.equal(byName["minimist"], "1.2.0");
+  assert.equal(byName["react-dom"], "18.2.0"); // peer 后缀被截掉
+});

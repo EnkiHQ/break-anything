@@ -12,6 +12,19 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.16.0] - 2026-10-23
+
+### Added
+- **Yarn and pnpm lockfile support** for `deps`/`fix`/`sbom`/`ci` — the npm ecosystem is no longer
+  limited to `package-lock.json`:
+  - `yarn.lock` — both classic v1 (`name@range:` + `version "x"`) and Berry v2+ (`name@npm:range` +
+    `version: x`), including scoped packages.
+  - `pnpm-lock.yaml` — v5/v6/v9 package keys (`/name@ver`, `/@scope/name@ver`, `/name/ver`), peer
+    suffixes stripped.
+  - Precedence per project: `package-lock.json` → `yarn.lock` → `pnpm-lock.yaml` (no double counting).
+    Direct deps read from `package.json`.
+- Pure, unit-tested `parseYarnLockText` / `parsePnpmLockText` (69 tests total).
+
 ## [0.15.0] - 2026-10-23
 
 ### Added
@@ -221,7 +234,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/EnkiHQ/break-anything/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/EnkiHQ/break-anything/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/EnkiHQ/break-anything/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/EnkiHQ/break-anything/compare/v0.12.0...v0.13.0

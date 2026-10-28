@@ -219,7 +219,7 @@ jobs:
 | 你给它 | 形态 | 对应类别 |
 | --- | --- | --- |
 | 一个仓库 / 源码目录 | 源码 / 技术栈 | 依赖、代码、密钥、IaC |
-| 一个 lockfile(`package-lock.json`、`go.mod`、`pom.xml`…) | 依赖清单 | 依赖 |
+| 一个 lockfile(`package-lock.json`、`yarn.lock`、`pnpm-lock.yaml`、`go.mod`、`pom.xml`…) | 依赖清单 | 依赖 |
 | 一个容器镜像 | 构建产物 | 容器 |
 | 一份 Terraform / Kubernetes / Dockerfile | 配置 | 基础设施配置 |
 | 一个运行中的网址或 API(你自己的) | 活体系统 | 运行应用、API |
@@ -231,7 +231,7 @@ jobs:
 
 ### ✅ 今日已发
 
-- **依赖(SCA)** — 整棵依赖树的已知 CVE,按**可达性** + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)(在野已利用)+ [EPSS](https://www.first.org/epss/)(被利用概率)排序,带修复版本。由 [OSV](https://osv.dev) 驱动。**8 个生态:** npm、PyPI、Composer(PHP)、Go、Rust(crates.io)、Ruby(RubyGems)、Maven(Java)、NuGet(.NET)。
+- **依赖(SCA)** — 整棵依赖树的已知 CVE,按**可达性** + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)(在野已利用)+ [EPSS](https://www.first.org/epss/)(被利用概率)排序,带修复版本。由 [OSV](https://osv.dev) 驱动。**8 个生态:** npm(package-lock / yarn / pnpm)、PyPI、Composer(PHP)、Go、Rust(crates.io)、Ruby(RubyGems)、Maven(Java)、NuGet(.NET)。
 - **密钥(Secrets)** — 工作区 + 完整 git 历史里的泄露 key/令牌/私钥,输出里脱敏。内置;识别 AWS、GCP、GitHub、GitLab、Slack、Stripe、OpenAI、JWT、私钥和通用赋值密钥。
 - **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF、硬编码密钥——每条带文件/行号、CWE/OWASP 标签和命中片段。引擎:[Semgrep](https://semgrep.dev)。
 - **基础设施即代码(IaC)** — Dockerfile、Kubernetes、Terraform 的错误配置(以 root 运行的容器、特权 Pod、对全网开放的 CIDR、公开桶、烤进镜像的密钥),每条带文件/行号、CWE 和修复建议。**内置,免装任何引擎。**

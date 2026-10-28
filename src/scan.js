@@ -11,7 +11,7 @@ export async function scanDependencies(targetPath, { reachability = true, concur
     return {
       target: dir,
       ok: false,
-      message: "未找到受支持的 lockfile(package-lock.json / composer.lock / requirements.txt / go.mod / Cargo.lock / Gemfile.lock / pom.xml / packages.lock.json)。",
+      message: "未找到受支持的 lockfile(package-lock.json / yarn.lock / pnpm-lock.yaml / composer.lock / requirements.txt / go.mod / Cargo.lock / Gemfile.lock / pom.xml / packages.lock.json)。",
       sources: [],
       findings: [],
       summary: emptySummary(),

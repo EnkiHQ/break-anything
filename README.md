@@ -253,7 +253,7 @@ engine.
 | You give it | Form | Categories |
 | --- | --- | --- |
 | A repo or source tree | source / tech stack | SCA, SAST, Secrets, IaC |
-| A lockfile (`package-lock.json`, `go.mod`, `pom.xml`…) | manifest | SCA |
+| A lockfile (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `go.mod`, `pom.xml`…) | manifest | SCA |
 | A container image | build artifact | Containers |
 | A Terraform / Kubernetes / Dockerfile | config | IaC |
 | A running URL or API (yours) | live system | DAST, API |
@@ -266,7 +266,7 @@ already run in real pipelines. ✅ shipped · 🧭 on the roadmap.
 
 ### ✅ Shipped today
 
-- **Dependencies (SCA)** — known CVEs across your whole tree, ranked by **reachability** + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (known-exploited) + [EPSS](https://www.first.org/epss/) (exploit probability), with fix versions. Powered by [OSV](https://osv.dev). **8 ecosystems:** npm, PyPI, Composer (PHP), Go, Rust (crates.io), Ruby (RubyGems), Maven (Java), NuGet (.NET).
+- **Dependencies (SCA)** — known CVEs across your whole tree, ranked by **reachability** + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (known-exploited) + [EPSS](https://www.first.org/epss/) (exploit probability), with fix versions. Powered by [OSV](https://osv.dev). **8 ecosystems:** npm (package-lock / yarn / pnpm), PyPI, Composer (PHP), Go, Rust (crates.io), Ruby (RubyGems), Maven (Java), NuGet (.NET).
 - **Secrets** — leaked keys/tokens/private keys in the working tree and full git history, redacted in output. Built in; recognizes AWS, GCP, GitHub, GitLab, Slack, Stripe, OpenAI, JWTs, private keys and generic assigned secrets.
 - **Static code (SAST)** — injection, broken access control, insecure deserialization, SSRF, hardcoded secrets — each with file/line, CWE/OWASP tags, and the offending snippet. Engine: [Semgrep](https://semgrep.dev).
 - **Infrastructure as Code (IaC)** — Dockerfile, Kubernetes, and Terraform misconfigurations (root containers, privileged pods, world-open CIDRs, public buckets, baked-in secrets), each with file/line, CWE, and a fix. **Built in — no engine to install.**
