@@ -213,6 +213,7 @@ jobs:
 | JSON | `--json` | 脚本、Agent、自定义面板 |
 | SARIF 2.1.0 | `--sarif` | GitHub / GitLab 代码扫描、IDE 安全面板 |
 | CycloneDX SBOM | `brk sbom` | 归档、审计,`--diff` 卡依赖漂移 |
+| HTML 报告 | `brk ci --html` | 给不看终端的人的可分享自包含报告 |
 
 ## 你可以指给它什么
 

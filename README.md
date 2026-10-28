@@ -247,6 +247,7 @@ Every finding-producing command speaks the formats your toolchain already reads:
 | JSON | `--json` | Scripting, agents, custom dashboards |
 | SARIF 2.1.0 | `--sarif` | GitHub / GitLab code scanning, IDE security panels |
 | CycloneDX SBOM | `brk sbom` | Archive, audit, and `--diff` to gate dependency drift |
+| HTML report | `brk ci --html` | A shareable, self-contained report for non-terminal stakeholders |
 
 ## What you point it at
 

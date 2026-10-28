@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.17.0";
+const VERSION = "0.18.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -37,13 +37,14 @@ ci 选项:
   --policy=<file>        指定策略文件(默认读目标目录下 .break-anything.json)
   --baseline             把当前全部发现写进策略 ignore,门禁此后只卡新增
   --sarif                把全部类别合并成一份 SARIF 输出
+  --html=<file>          生成自包含 HTML 报告(可分享)
   策略文件 .break-anything.json:{ "failOn", "skip":[], "ignore":[CVE/规则ID…] }
 
 范围声明:只对你拥有、或已获得明确授权的目标使用。详见 DISCLAIMER.md。
 `;
 
 // 这些 flag 接受一个值,支持 --key=value 与 --key value 两种写法
-const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out", "fail-on", "skip", "policy"]);
+const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out", "fail-on", "skip", "policy", "html"]);
 
 function parseFlags(argv) {
   const flags = {};
@@ -298,7 +299,17 @@ async function main() {
 
     const result = await runCi(target, { failOn: policy.failOn, skip: policy.skip, ignore: policy.ignore });
     if (loaded) result.policy.source = loaded.file;
-    if (flags.sarif) {
+    if (flags.html) {
+      const { renderHtml } = await import("../src/htmlreport.js");
+      const html = renderHtml(result);
+      if (typeof flags.html === "string") {
+        const fs = await import("node:fs/promises");
+        await fs.writeFile(flags.html, html);
+        process.stderr.write(`已写入 HTML 报告 → ${flags.html}\n`);
+      } else {
+        process.stdout.write(html + "\n");
+      }
+    } else if (flags.sarif) {
       const { toSarifMulti } = await import("../src/sarif.js");
       const entries = Object.entries(result.categories).map(([kind, res]) => ({ kind, result: res }));
       process.stdout.write(JSON.stringify(toSarifMulti(entries), null, 2) + "\n");

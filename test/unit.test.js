@@ -887,3 +887,48 @@ test("buildBaseline:无现有策略时从空开始,默认 failOn HIGH", () => {
   assert.equal(added, 1);
   assert.equal(policy.ignore[0].id, "r1");
 });
+
+// ---- HTML 报告(纯函数,含 XSS 转义)----
+import { renderHtml, findingRow, esc } from "../src/htmlreport.js";
+
+test("esc:转义 HTML 特殊字符", () => {
+  assert.equal(esc(`<script>&"'`), "&lt;script&gt;&amp;&quot;&#39;");
+});
+
+test("findingRow:各类别归一为行", () => {
+  assert.equal(findingRow("deps", { package: "lodash", version: "4.17.4", cve: "CVE-1", kev: true, reachability: "called", ecosystem: "npm" }).name, "lodash@4.17.4 [KEV]");
+  assert.equal(findingRow("secrets", { rule: "aws-access-key-id", source: "history", commit: "abc" }).location, "git history abc");
+  assert.equal(findingRow("iac", { title: "root", rule: "docker-no-user", cwe: "CWE-250", location: "Dockerfile:1" }).name, "root");
+});
+
+test("renderHtml:门禁状态、计数、分节齐全", () => {
+  const result = {
+    target: "./svc",
+    policy: { suppressed: 2 },
+    summary: { total: 2, bySeverity: { HIGH: 1, MEDIUM: 1 } },
+    gate: { passed: false, failOn: "HIGH", reasons: ["1 leaked secret"] },
+    categories: {
+      secrets: { ok: true, findings: [{ rule: "aws-access-key-id", severity: "HIGH", source: "worktree", location: "a.txt", line: 2 }] },
+      iac: { ok: true, findings: [{ rule: "docker-latest-tag", severity: "MEDIUM", title: "latest tag", location: "Dockerfile:1" }] },
+      sast: { ok: false, findings: [] },
+    },
+  };
+  const html = renderHtml(result, { now: "2026-10-28T00:00:00Z" });
+  assert.ok(html.startsWith("<!doctype html>"));
+  assert.ok(html.includes("GATE FAILED"));
+  assert.ok(html.includes("1 leaked secret"));
+  assert.ok(html.includes("2 suppressed by policy"));
+  assert.ok(html.includes("aws-access-key-id"));
+  assert.ok(html.includes("skipped")); // sast 跳过
+  assert.ok(html.includes("sev-high"));
+});
+
+test("renderHtml:发现内容里的 HTML 被转义(防 XSS)", () => {
+  const html = renderHtml({
+    target: "x", summary: { total: 1, bySeverity: { HIGH: 1 } }, gate: { passed: true, failOn: "HIGH", reasons: [] },
+    categories: { sast: { ok: true, findings: [{ rule: "<img src=x onerror=alert(1)>", severity: "HIGH", message: "</td><script>evil</script>", location: "a.js:1" }] } },
+  });
+  assert.ok(!html.includes("<script>evil</script>"));
+  assert.ok(html.includes("&lt;script&gt;evil&lt;/script&gt;"));
+  assert.ok(!html.includes("<img src=x onerror"));
+});

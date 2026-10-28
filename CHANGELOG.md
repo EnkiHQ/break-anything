@@ -12,6 +12,15 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.18.0] - 2026-10-23
+
+### Added
+- **Shareable HTML report** — `brk ci --html report.html` writes a self-contained, single-file HTML
+  report (inline styles, no external assets): gate verdict banner, severity summary, and a table of
+  findings per category. For stakeholders who don't live in a terminal. All scanned content is
+  HTML-escaped (XSS-safe); `--html` with no value prints to stdout.
+- Pure, unit-tested `renderHtml` / `findingRow` / `esc` (76 tests total, incl. an XSS-escaping test).
+
 ## [0.17.0] - 2026-10-23
 
 ### Added
@@ -243,7 +252,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/EnkiHQ/break-anything/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/EnkiHQ/break-anything/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/EnkiHQ/break-anything/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/EnkiHQ/break-anything/compare/v0.14.0...v0.15.0
