@@ -93,6 +93,7 @@ const TOOLS = [
         path: { type: "string", description: "Absolute path to the project to scan." },
         failOn: { type: "string", description: "Gate threshold: critical|high|medium|low. Default high." },
         skip: { type: "array", items: { type: "string" }, description: "Categories to skip: deps, secrets, iac, sast." },
+        ignore: { type: "array", items: { type: "string" }, description: "Finding IDs to suppress (CVE, rule id). Also read from .break-anything.json." },
       },
       required: ["path"],
     },
@@ -173,7 +174,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.14.0" },
+    { name: "break-anything", version: "0.15.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -209,6 +210,7 @@ export async function startMcpServer() {
         result = await runCi(args.path, {
           failOn: (typeof args.failOn === "string" ? args.failOn : "HIGH").toUpperCase(),
           skip: Array.isArray(args.skip) ? args.skip : [],
+          ignore: Array.isArray(args.ignore) ? args.ignore : [],
         });
       } else if (name === "api_scan") {
         if (!strArg(args.baseUrl)) return bad("缺少必填参数 baseUrl。");

@@ -5,6 +5,7 @@ import { scanDependencies } from "./scan.js";
 import { scanSecrets } from "./secrets.js";
 import { scanIac } from "./iac.js";
 import { scanSast } from "./sast.js";
+import { applyPolicy } from "./policy.js";
 
 const SEV = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, UNKNOWN: 0 };
 function sevRank(s) { return SEV[String(s || "").toUpperCase()] ?? 0; }
@@ -67,16 +68,17 @@ async function safe(fn) {
   catch (e) { return { ok: false, message: e instanceof Error ? e.message : String(e), findings: [] }; }
 }
 
-// 入口:按需跑各扫描器并聚合 + 门禁
-export async function runCi(targetPath, { failOn = "HIGH", skip = [], reachability = true } = {}) {
-  const categories = {};
+// 入口:按需跑各扫描器 → 应用策略(忽略已接受项)→ 聚合 + 门禁
+export async function runCi(targetPath, { failOn = "HIGH", skip = [], ignore = [], reachability = true } = {}) {
+  const raw = {};
   const want = (k) => !skip.includes(k);
-  if (want("deps")) categories.deps = await safe(() => scanDependencies(targetPath, { reachability }));
-  if (want("secrets")) categories.secrets = await safe(() => scanSecrets(targetPath, { history: false }));
-  if (want("iac")) categories.iac = await safe(() => scanIac(targetPath));
-  if (want("sast")) categories.sast = await safe(() => scanSast(targetPath));
+  if (want("deps")) raw.deps = await safe(() => scanDependencies(targetPath, { reachability }));
+  if (want("secrets")) raw.secrets = await safe(() => scanSecrets(targetPath, { history: false }));
+  if (want("iac")) raw.iac = await safe(() => scanIac(targetPath));
+  if (want("sast")) raw.sast = await safe(() => scanSast(targetPath));
 
+  const { categories, suppressed } = applyPolicy(raw, { ignore });
   const summary = aggregate(categories);
   const gate = evaluateGate(categories, { failOn });
-  return { target: targetPath, ok: true, engine: "ci", categories, summary, gate };
+  return { target: targetPath, ok: true, engine: "ci", policy: { failOn, skip, suppressed }, categories, summary, gate };
 }

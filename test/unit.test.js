@@ -748,3 +748,53 @@ test("toSarifMulti:合并多类发现为一份 SARIF", () => {
   assert.ok(ruleIds.includes("docker-no-user"));
   assert.ok(ruleIds.includes("aws-access-key-id"));
 });
+
+// ---- 策略 / 基线(纯函数)----
+import { normalizeIgnore, isIgnored, applyPolicy, mergePolicy } from "../src/policy.js";
+
+test("normalizeIgnore:字符串与 {id} 对象混用都归一为 id 集合", () => {
+  const s = normalizeIgnore(["CVE-1", { id: "docker-no-user", reason: "已加固" }, "", { reason: "无 id" }, 123]);
+  assert.equal(s.has("CVE-1"), true);
+  assert.equal(s.has("docker-no-user"), true);
+  assert.equal(s.size, 2);
+});
+
+test("isIgnored:比对 cve / id / rule 任一命中", () => {
+  const ig = normalizeIgnore(["CVE-2021-23337", "aws-access-key-id"]);
+  assert.equal(isIgnored({ cve: "CVE-2021-23337", id: "GHSA-x" }, ig), true);
+  assert.equal(isIgnored({ rule: "aws-access-key-id" }, ig), true);
+  assert.equal(isIgnored({ cve: "CVE-9", rule: "other" }, ig), false);
+  assert.equal(isIgnored({ cve: "CVE-9" }, new Set()), false);
+});
+
+test("applyPolicy:忽略命中项从 categories 移除并计数", () => {
+  const categories = {
+    deps: { ok: true, findings: [
+      { cve: "CVE-2021-23337", severity: "HIGH", reachability: "called" },
+      { cve: "CVE-NEW", severity: "HIGH", reachability: "called" },
+    ] },
+    iac: { ok: true, findings: [{ rule: "docker-no-user", severity: "MEDIUM" }] },
+    sast: { ok: false, message: "no semgrep", findings: [] },
+  };
+  const { categories: out, suppressed } = applyPolicy(categories, { ignore: ["CVE-2021-23337", "docker-no-user"] });
+  assert.equal(suppressed, 2);
+  assert.equal(out.deps.findings.length, 1);
+  assert.equal(out.deps.findings[0].cve, "CVE-NEW");
+  assert.equal(out.iac.findings.length, 0);
+  assert.equal(out.sast.ok, false); // 跳过的类别原样保留
+});
+
+test("mergePolicy:flag 覆盖 failOn,skip/ignore 取并集", () => {
+  const m = mergePolicy(
+    { failOn: "medium", skip: ["sast"], ignore: ["CVE-1"] },
+    { failOn: "HIGH", skip: ["deps"], ignore: ["CVE-2"] },
+  );
+  assert.equal(m.failOn, "HIGH");           // flag 覆盖
+  assert.deepEqual([...m.skip].sort(), ["deps", "sast"]);
+  assert.deepEqual(m.ignore, ["CVE-1", "CVE-2"]);
+});
+
+test("mergePolicy:无覆盖时用文件值,默认 failOn HIGH", () => {
+  assert.equal(mergePolicy({}, {}).failOn, "HIGH");
+  assert.equal(mergePolicy({ failOn: "low" }, {}).failOn, "LOW");
+});

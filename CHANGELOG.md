@@ -12,6 +12,20 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.15.0] - 2026-10-23
+
+### Added
+- **Policy / baseline config** — `ci` now reads a `.break-anything.json` from the target (or
+  `--policy <file>`) so teams can actually adopt the gate:
+  - `failOn` — default gate threshold (overridable by `--fail-on`).
+  - `skip` — categories to skip (unioned with `--skip`).
+  - `ignore` — suppress accepted findings by CVE / rule id (string or `{ "id", "reason" }`); suppressed
+    findings drop out of both the gate and the counts, and the report shows how many were ignored.
+  - `ci_scan` MCP tool gains an `ignore` parameter.
+- This is the first release to publish **through the test gate** added in 0.13.0 — `node --test`
+  must pass before `npm publish`.
+- Pure, unit-tested `normalizeIgnore` / `isIgnored` / `applyPolicy` / `mergePolicy` (66 tests total).
+
 ## [0.14.0] - 2026-10-23
 
 ### Added
@@ -207,7 +221,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/EnkiHQ/break-anything/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/EnkiHQ/break-anything/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/EnkiHQ/break-anything/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/EnkiHQ/break-anything/compare/v0.11.0...v0.12.0

@@ -6,7 +6,7 @@ describe direction, not shipped support. A new scanner joins the public workflow
 produces the same finding envelope (severity, evidence, exploitability, remediation, limitations)
 as the shipped scanners.
 
-## Shipped (0.12.0)
+## Shipped (0.15.0)
 
 - **Supply chain / dependencies (SCA)** — npm, PyPI, Composer (PHP), Go, Rust (crates.io),
   Ruby (RubyGems), Maven (Java), NuGet (.NET); OSV lookup, two-tier reachability (`called` >
@@ -24,7 +24,8 @@ as the shipped scanners.
 - **Fix planning** — turns dependency findings into a prioritized remediation plan: minimal safe
   upgrades ordered by reachability then severity, with the exact `npm`/`pip`/`composer` command.
 - **One-shot CI gate** — `ci` runs deps+secrets+iac+sast in one command with a single pass/fail
-  exit code, combined report, and merged SARIF.
+  exit code, combined report, and merged SARIF; configurable via a `.break-anything.json` policy
+  (threshold, skip, ignore/baseline).
 - **MCP tools** — `deps_scan`, `secrets_scan`, `image_scan`, `sast_scan`, `iac_scan`, `api_scan`,
   `fix_plan`, `sbom_generate`, `ci_scan`.
 

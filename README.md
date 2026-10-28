@@ -219,6 +219,21 @@ jobs:
 Any other CI works too — it's just an exit code. GitLab, CircleCI, Jenkins: run `npx -y
 break-anything ci .` and check the status.
 
+**Tune the gate with a policy file.** Drop a `.break-anything.json` in your repo to set the
+threshold, skip categories, and baseline the findings you've already accepted — so the gate fails on
+what's *new*, not on day-one debt:
+
+```json
+{
+  "failOn": "high",
+  "skip": ["sast"],
+  "ignore": [
+    "CVE-2019-10744",
+    { "id": "docker-no-user", "reason": "base image is hardened" }
+  ]
+}
+```
+
 ## Output formats
 
 Every finding-producing command speaks the formats your toolchain already reads:

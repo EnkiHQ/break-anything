@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.14.0";
+const VERSION = "0.15.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -34,13 +34,15 @@ secrets 选项:
 ci 选项:
   --fail-on=<sev>        门禁阈值 critical|high|medium|low(默认 high)
   --skip=a,b             跳过某些类别(deps,secrets,iac,sast)
+  --policy=<file>        指定策略文件(默认读目标目录下 .break-anything.json)
   --sarif                把全部类别合并成一份 SARIF 输出
+  策略文件 .break-anything.json:{ "failOn", "skip":[], "ignore":[CVE/规则ID…] }
 
 范围声明:只对你拥有、或已获得明确授权的目标使用。详见 DISCLAIMER.md。
 `;
 
 // 这些 flag 接受一个值,支持 --key=value 与 --key value 两种写法
-const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out", "fail-on", "skip"]);
+const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out", "fail-on", "skip", "policy"]);
 
 function parseFlags(argv) {
   const flags = {};
@@ -271,10 +273,16 @@ async function main() {
   if (cmd === "ci") {
     const { flags, positional } = parseFlags(rest);
     const target = positional[0] || process.cwd();
-    const failOn = (flags["fail-on"] || "HIGH").toUpperCase();
-    const skip = typeof flags.skip === "string" ? flags.skip.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const skipFlag = typeof flags.skip === "string" ? flags.skip.split(",").map((s) => s.trim()).filter(Boolean) : [];
     const { runCi } = await import("../src/ci.js");
-    const result = await runCi(target, { failOn, skip });
+    const { loadPolicy, mergePolicy } = await import("../src/policy.js");
+    const loaded = await loadPolicy(flags.policy || target);
+    const policy = mergePolicy(loaded?.policy || {}, {
+      failOn: flags["fail-on"] ? String(flags["fail-on"]).toUpperCase() : undefined,
+      skip: skipFlag,
+    });
+    const result = await runCi(target, { failOn: policy.failOn, skip: policy.skip, ignore: policy.ignore });
+    if (loaded) result.policy.source = loaded.file;
     if (flags.sarif) {
       const { toSarifMulti } = await import("../src/sarif.js");
       const entries = Object.entries(result.categories).map(([kind, res]) => ({ kind, result: res }));

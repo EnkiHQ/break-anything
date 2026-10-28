@@ -438,6 +438,11 @@ export function renderCi(result, { color = true } = {}) {
   lines.push(`${c.bold}${zh ? "合计" : "total"}${c.reset} ${s.total} ${zh ? "条" : "findings"}${sevParts ? `  ·  ${sevParts}` : ""}`);
   lines.push("");
 
+  if (result.policy && result.policy.suppressed) {
+    lines.push(`${c.gray}${result.policy.suppressed} ${zh ? "条被策略忽略" : "suppressed by policy"}${result.policy.source ? ` (${result.policy.source.split("/").pop()})` : ""}${c.reset}`);
+    lines.push("");
+  }
+
   const g = result.gate;
   if (g.passed) {
     lines.push(`${c.green}${c.bold}✓ ${zh ? "门禁通过" : "GATE PASSED"}${c.reset} ${c.gray}(${zh ? "阈值" : "fail-on"} ${g.failOn})${c.reset}`);

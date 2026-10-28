@@ -188,6 +188,19 @@ jobs:
 
 其它 CI 一样能用——本质就是个退出码。GitLab、CircleCI、Jenkins:跑 `npx -y break-anything ci .` 看状态即可。
 
+**用策略文件调门禁。** 在仓库根放一个 `.break-anything.json`,设阈值、跳过类别、把已接受的历史发现做成基线——让门禁只卡**新增**的,而不是开局就被一堆旧账卡死:
+
+```json
+{
+  "failOn": "high",
+  "skip": ["sast"],
+  "ignore": [
+    "CVE-2019-10744",
+    { "id": "docker-no-user", "reason": "基础镜像已加固" }
+  ]
+}
+```
+
 ## 输出格式
 
 每个产出发现的命令都讲你工具链已经认识的格式:
