@@ -234,6 +234,9 @@ what's *new*, not on day-one debt:
 }
 ```
 
+Adopting the gate on an existing repo? Run `npx -y break-anything ci . --baseline` once — it records
+every current finding into the policy so the gate only fails on what's **new** from then on.
+
 ## Output formats
 
 Every finding-producing command speaks the formats your toolchain already reads:

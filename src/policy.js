@@ -59,6 +59,38 @@ export function mergePolicy(filePolicy = {}, overrides = {}) {
   return merged;
 }
 
+// 从 categories 收集所有发现的稳定 id(cve / id / rule),去重(纯函数,可单测)
+export function collectFindingIds(categories) {
+  const ids = new Set();
+  for (const cat of Object.values(categories || {})) {
+    if (!cat || !cat.ok || !Array.isArray(cat.findings)) continue;
+    for (const f of cat.findings) {
+      const id = f.cve || f.id || f.rule;
+      if (id) ids.add(String(id));
+    }
+  }
+  return [...ids];
+}
+
+// 基线:把当前全部发现并入现有策略的 ignore(保留已有条目,新项带日期理由)(纯函数,可单测)
+export function buildBaseline(categories, existing = {}, { now } = {}) {
+  const have = normalizeIgnore(existing.ignore);
+  const date = (now || new Date().toISOString()).slice(0, 10);
+  const ignore = [...(existing.ignore || [])];
+  let added = 0;
+  for (const id of collectFindingIds(categories)) {
+    if (!have.has(id)) { ignore.push({ id, reason: `baselined ${date}` }); added++; }
+  }
+  return {
+    policy: {
+      failOn: String(existing.failOn || "HIGH").toUpperCase(),
+      skip: existing.skip || [],
+      ignore,
+    },
+    added,
+  };
+}
+
 // 读取策略文件:给目录则找 .break-anything.json;给文件则直接读。找不到返回 null(尽力而为)
 export async function loadPolicy(targetPath) {
   let file = targetPath;

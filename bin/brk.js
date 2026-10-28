@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.16.0";
+const VERSION = "0.17.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -35,6 +35,7 @@ ci 选项:
   --fail-on=<sev>        门禁阈值 critical|high|medium|low(默认 high)
   --skip=a,b             跳过某些类别(deps,secrets,iac,sast)
   --policy=<file>        指定策略文件(默认读目标目录下 .break-anything.json)
+  --baseline             把当前全部发现写进策略 ignore,门禁此后只卡新增
   --sarif                把全部类别合并成一份 SARIF 输出
   策略文件 .break-anything.json:{ "failOn", "skip":[], "ignore":[CVE/规则ID…] }
 
@@ -281,6 +282,20 @@ async function main() {
       failOn: flags["fail-on"] ? String(flags["fail-on"]).toUpperCase() : undefined,
       skip: skipFlag,
     });
+    if (flags.baseline) {
+      // 基线模式:扫出当前全部发现(不套用 ignore),写进策略文件,让门禁此后只卡新增
+      const { buildBaseline } = await import("../src/policy.js");
+      const scan = await runCi(target, { failOn: policy.failOn, skip: policy.skip, ignore: [] });
+      const { policy: baselined, added } = buildBaseline(scan.categories, loaded?.policy || { failOn: policy.failOn, skip: policy.skip });
+      const fs = await import("node:fs/promises");
+      const pathMod = await import("node:path");
+      const outFile = typeof flags.baseline === "string" ? flags.baseline
+        : (flags.policy || pathMod.join(target, ".break-anything.json"));
+      await fs.writeFile(outFile, JSON.stringify(baselined, null, 2) + "\n");
+      process.stdout.write(`已基线化 ${added} 条当前发现 → ${outFile}\n现在起 brk ci 只会对“新增”发现触发门禁。\n`);
+      return;
+    }
+
     const result = await runCi(target, { failOn: policy.failOn, skip: policy.skip, ignore: policy.ignore });
     if (loaded) result.policy.source = loaded.file;
     if (flags.sarif) {

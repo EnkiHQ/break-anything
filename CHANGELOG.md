@@ -12,6 +12,15 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.17.0] - 2026-10-23
+
+### Added
+- **Auto-baseline** — `brk ci --baseline` records every current finding into `.break-anything.json`'s
+  `ignore` list (each with a `baselined <date>` reason), preserving your `failOn`/`skip`. From then on
+  the gate only fails on **new** findings — the practical way to adopt the gate on a repo with
+  existing debt. `--baseline=<file>` writes elsewhere; existing ignores are kept.
+- Pure, unit-tested `collectFindingIds` / `buildBaseline` (72 tests total).
+
 ## [0.16.0] - 2026-10-23
 
 ### Added
@@ -234,7 +243,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/EnkiHQ/break-anything/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/EnkiHQ/break-anything/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/EnkiHQ/break-anything/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/EnkiHQ/break-anything/compare/v0.13.0...v0.14.0

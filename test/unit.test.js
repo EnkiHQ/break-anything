@@ -852,3 +852,38 @@ test("parsePnpmLockText:兼容 /name@ver、/@scope/name@ver、/name/ver、以及
   assert.equal(byName["minimist"], "1.2.0");
   assert.equal(byName["react-dom"], "18.2.0"); // peer 后缀被截掉
 });
+
+// ---- 自动基线(纯函数)----
+import { collectFindingIds, buildBaseline } from "../src/policy.js";
+
+test("collectFindingIds:跨类别收集 cve/id/rule 去重", () => {
+  const cats = {
+    deps: { ok: true, findings: [{ cve: "CVE-1" }, { id: "GHSA-x" }, { cve: "CVE-1" }] },
+    iac: { ok: true, findings: [{ rule: "docker-no-user" }] },
+    sast: { ok: false, findings: [] },
+  };
+  const ids = collectFindingIds(cats).sort();
+  assert.deepEqual(ids, ["CVE-1", "GHSA-x", "docker-no-user"]);
+});
+
+test("buildBaseline:把当前发现并入 ignore,保留已有条目与 failOn/skip", () => {
+  const cats = {
+    iac: { ok: true, findings: [{ rule: "docker-no-user" }, { rule: "docker-latest-tag" }] },
+    secrets: { ok: true, findings: [{ rule: "aws-access-key-id" }] },
+  };
+  const existing = { failOn: "medium", skip: ["sast"], ignore: ["docker-no-user"] };
+  const { policy, added } = buildBaseline(cats, existing, { now: "2026-10-28T00:00:00Z" });
+  assert.equal(policy.failOn, "MEDIUM");
+  assert.deepEqual(policy.skip, ["sast"]);
+  assert.equal(added, 2); // docker-no-user 已在,只加 docker-latest-tag + aws-access-key-id
+  assert.ok(policy.ignore.includes("docker-no-user")); // 旧条目原样保留
+  const newEntry = policy.ignore.find((x) => x && x.id === "docker-latest-tag");
+  assert.ok(newEntry && /baselined 2026-10-28/.test(newEntry.reason));
+});
+
+test("buildBaseline:无现有策略时从空开始,默认 failOn HIGH", () => {
+  const { policy, added } = buildBaseline({ iac: { ok: true, findings: [{ rule: "r1" }] } }, {});
+  assert.equal(policy.failOn, "HIGH");
+  assert.equal(added, 1);
+  assert.equal(policy.ignore[0].id, "r1");
+});
