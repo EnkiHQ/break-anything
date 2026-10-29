@@ -1126,3 +1126,59 @@ test("detectNucleiFailure:正常运行(无致命错误、退出码 0)返回 null
   assert.equal(detectNucleiFailure("[INF] Templates loaded: 100\n[INF] Scan completed", 0), null);
   assert.equal(detectNucleiFailure("", 0), null);
 });
+
+// ---- Go 符号级可达性(纯函数,不触网)----
+import { classifyGovulnTrace, formatCallPath, normalizeGovulncheck, splitJsonObjects, govulnReachRank } from "../src/govuln.js";
+
+test("classifyGovulnTrace:按最深帧判定 called / imported / required", () => {
+  assert.equal(classifyGovulnTrace([{ module: "m", package: "p", function: "Parse" }]), "called");
+  assert.equal(classifyGovulnTrace([{ module: "m", package: "p" }]), "imported");
+  assert.equal(classifyGovulnTrace([{ module: "m" }]), "required");
+  assert.equal(classifyGovulnTrace([]), "required");
+  assert.equal(classifyGovulnTrace(null), "required");
+});
+
+test("govulnReachRank:called > imported > required", () => {
+  assert.ok(govulnReachRank("called") > govulnReachRank("imported"));
+  assert.ok(govulnReachRank("imported") > govulnReachRank("required"));
+});
+
+test("formatCallPath:反转为入口在前,带文件行号", () => {
+  const trace = [
+    { package: "golang.org/x/text/language", function: "Parse", position: { filename: "language/parse.go", line: 228 } },
+    { package: "example.com/app", function: "parseTag", position: { filename: "main.go", line: 10 } },
+    { package: "example.com/app", function: "main", position: { filename: "main.go", line: 14 } },
+  ];
+  const p = formatCallPath(trace);
+  assert.equal(p[0].symbol, "example.com/app.main");          // 入口在最前
+  assert.equal(p[2].symbol, "golang.org/x/text/language.Parse"); // 脆弱函数在最后
+  assert.equal(p[0].at, "main.go:14");
+});
+
+test("splitJsonObjects:从拼接/美化的 JSON 流里切出顶层对象", () => {
+  const txt = '{"a":1}\n{\n  "b": {"c": "}{"}\n}\n{bad}';
+  const objs = splitJsonObjects(txt);
+  assert.equal(objs.length, 2);                 // 坏片段被跳过
+  assert.equal(objs[1].b.c, "}{");             // 字符串里的花括号不影响配平
+});
+
+test("normalizeGovulncheck:关联 osv 元数据,同一漏洞保留最强可达层级", () => {
+  const stream = [
+    JSON.stringify({ osv: { id: "GO-2021-0113", aliases: ["CVE-2021-38561"], summary: "OOB read" } }),
+    // 同一漏洞先给弱的 required,再给强的 called —— 应只保留 called
+    JSON.stringify({ finding: { osv: "GO-2021-0113", fixed_version: "v0.3.7", trace: [{ module: "golang.org/x/text", version: "v0.3.0" }] } }),
+    JSON.stringify({ finding: { osv: "GO-2021-0113", fixed_version: "v0.3.7", trace: [
+      { module: "golang.org/x/text", version: "v0.3.0", package: "golang.org/x/text/language", function: "Parse" },
+      { module: "example.com/app", package: "example.com/app", function: "main" },
+    ] } }),
+  ].join("\n");
+  const r = normalizeGovulncheck(stream, "./m");
+  assert.equal(r.ok, true);
+  assert.equal(r.summary.total, 1);             // 去重后一条
+  assert.equal(r.summary.called, 1);
+  assert.equal(r.findings[0].reachability, "called");
+  assert.equal(r.findings[0].cve, "CVE-2021-38561");
+  assert.equal(r.findings[0].vulnerableSymbol, "golang.org/x/text/language.Parse");
+  assert.deepEqual(r.findings[0].fixedVersions, ["0.3.7"]);
+  assert.equal(r.findings[0].callPath.length, 2);
+});

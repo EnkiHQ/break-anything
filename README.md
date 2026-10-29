@@ -152,7 +152,8 @@ three things a list can't do:
   `called` → `imported` → `direct` → `transitive`. It doesn't just check that a vulnerable package is
   present — it extracts the symbols you imported from it and checks whether your code actually
   **calls** them. The `lodash` you never invoke is noise; the one you call is the finding. You triage
-  3, not 400.
+  3, not 400. **For Go, `brk goreach` goes all the way**: real call-graph analysis that proves the
+  exact vulnerable function is on a live path from your code, and prints the call path.
 - **Proof, not prose.** Instead of a CVSS paragraph, it builds a proof-of-concept against *your*
   build — the exact input or request that breaks it — so "theoretically vulnerable" becomes "here's
   the repro." The API prober returns the literal request that read another account's data.
@@ -170,6 +171,7 @@ MCP) and does the reasoning they can't.
 | --- | :---: | :---: | :---: | :---: |
 | Lists known CVEs | ✅ | ✅ | ✅ | ✅ |
 | Reachability (is it actually called) | ✗ | ✗ | partial | ✅ `called` vs `imported` |
+| Symbol-level call path as proof | ✗ | ✗ | partial | ✅ Go (`goreach`) |
 | Known-exploited (CISA KEV) + EPSS ranking | ✗ | partial | ✅ | ✅ |
 | Proof-of-concept against *your* build | ✗ | ✗ | ✗ | ✅ (API/DAST) |
 | Fix plan when upstream has no patch | ✗ | ✗ | partial | ✅ |
@@ -286,7 +288,7 @@ already run in real pipelines. ✅ shipped · 🧭 on the roadmap.
 - **More SAST engines** — [CodeQL](https://codeql.github.com), Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs (Java), security-code-scan (.NET), retire.js (frontend).
 - **Deeper IaC & cloud** — opt-in [Checkov](https://www.checkov.io) / tfsec / [KICS](https://kics.io) / [Kubescape](https://github.com/kubescape/kubescape) backends; CloudFormation, ARM/Bicep, Ansible; CSPM via [Prowler](https://github.com/prowler-cloud/prowler) / ScoutSuite.
 - **More DAST & attack surface** — content/parameter discovery, XSS and injection fuzzing on top of today's authorization prober + Nuclei corpus. [OWASP ZAP](https://www.zaproxy.org), [sqlmap](https://sqlmap.org), [ffuf](https://github.com/ffuf/ffuf); surface mapping via [Nmap](https://nmap.org) + ProjectDiscovery.
-- **Call-graph reachability** — from "the symbol is called" to "the specific vulnerable function is on a real path."
+- **Call-graph reachability beyond Go** — shipped for Go via `goreach`; extending symbol-level proof to JS/TS and Python (limited by advisories rarely publishing vulnerable symbols outside Go).
 - **AI/LLM · binary · mobile · fuzzing** — [Garak](https://github.com/NVIDIA/garak) · [Ghidra](https://ghidra-sre.org)/[angr](https://github.com/angr/angr) · [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) · [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 - **Offensive / exploitation** — *authorized pentest only; gated, off by default, written permission required.* [Metasploit](https://www.metasploit.com), [Hydra](https://github.com/vanhauser-thc/thc-hydra), [BloodHound](https://github.com/SpecterOps/BloodHound).
 

@@ -495,3 +495,56 @@ export function renderNuclei(result, { color = true, top } = {}) {
   lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${parts}`);
   return lines.join("\n");
 }
+
+// ---- Go 符号级可达性 ----
+export function renderGoReach(result, { color = true, top } = {}) {
+  const c = palette(color);
+  const zh = LANG === "zh";
+  const lines = [];
+  lines.push(`${c.bold}Break Anything · ${zh ? "Go 符号级可达性" : "Go symbol-level reachability"}${c.reset} ${c.gray}(govulncheck)${c.reset}`);
+
+  if (!result.ok) {
+    lines.push("");
+    lines.push(`${c.yellow}${result.message}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  lines.push(`${c.gray}${result.target}${c.reset}`);
+  lines.push("");
+  if (!result.findings.length) {
+    lines.push(`${c.green}${zh ? "✓ 未发现影响该模块的已知漏洞。" : "✓ No known vulnerabilities affecting this module."}${c.reset}`);
+    lines.push(`${c.gray}${T.cleanNote}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  const label = zh
+    ? { called: "脆弱函数被调用", imported: "仅导入", required: "仅依赖" }
+    : { called: "VULNERABLE FUNCTION CALLED", imported: "imported only", required: "required only" };
+
+  const shown = top && result.findings.length > top ? result.findings.slice(0, top) : result.findings;
+  for (const f of shown) {
+    const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
+    const rc = f.reachability === "called" ? c.red : c.gray;
+    lines.push(`${sev} ${c.bold}${f.module}@${f.version}${c.reset} ${rc}[${label[f.reachability] || f.reachability}]${c.reset}`);
+    const kevBadge = f.kev ? ` ${c.red}${c.bold}[${T.kev}]${c.reset}` : "";
+    lines.push(`  ${c.cyan}${f.cve || f.id}${c.reset}${kevBadge}  ·  ${T.epss(f.epss)}${f.fixedVersions.length ? `  ·  ${c.green}${T.fix(f.fixedVersions.join(", "))}${c.reset}` : ""}`);
+    if (f.summary) lines.push(`  ${c.gray}${f.summary.replace(/\s+/g, " ").slice(0, 110)}${c.reset}`);
+    if (f.reachability === "called" && f.callPath && f.callPath.length) {
+      lines.push(`  ${c.bold}${zh ? "调用路径(证据):" : "call path (proof):"}${c.reset}`);
+      for (const step of f.callPath) {
+        lines.push(`    ${c.gray}→${c.reset} ${step.symbol}${step.at ? ` ${c.gray}(${step.at})${c.reset}` : ""}`);
+      }
+    }
+    lines.push("");
+  }
+  if (shown.length < result.findings.length) {
+    lines.push(`${c.gray}${T.more(result.findings.length - shown.length)}${c.reset}`);
+    lines.push("");
+  }
+
+  const s = result.summary;
+  const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
+  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${c.red}${s.called} ${zh ? "被调用" : "called"}${c.reset}  ·  ${s.imported} ${zh ? "仅导入" : "imported"}${parts ? `  ·  ${parts}` : ""}`);
+  lines.push(`${c.gray}${zh ? "「被调用」由 govulncheck 的调用图分析得出,指公告里那个具体脆弱函数在你代码的调用链上。" : "\"called\" comes from govulncheck's call-graph analysis: the specific vulnerable function named in the advisory is on a real path from your code."}${c.reset}`);
+  return lines.join("\n");
+}

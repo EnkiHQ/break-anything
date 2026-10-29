@@ -11,6 +11,7 @@ import { fixDependencies } from "./fix.js";
 import { generateSbom } from "./sbom.js";
 import { runCi } from "./ci.js";
 import { scanNuclei } from "./nuclei.js";
+import { scanGoReachability } from "./govuln.js";
 
 const TOOLS = [
   {
@@ -77,6 +78,23 @@ const TOOLS = [
       properties: {
         path: { type: "string", description: "Absolute path to the source tree to scan." },
         config: { type: "string", description: "Semgrep ruleset (default p/security-audit)." },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "go_reachability",
+    description:
+      "True symbol-level reachability for a Go module via the official govulncheck. Unlike the " +
+      "import-based heuristic used elsewhere, this performs real call-graph analysis and reports " +
+      "whether the specific vulnerable function named in the advisory is on an actual path from your " +
+      "code — returning the call path (entry → vulnerable function, with file:line) as proof. " +
+      "Three levels: called (strongest) > imported > required. Findings are enriched with EPSS and " +
+      "CISA KEV because Go's vulnerability database does not carry severity. Requires govulncheck.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "Absolute path to the Go module (directory containing go.mod)." },
       },
       required: ["path"],
     },
@@ -193,7 +211,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.21.0" },
+    { name: "break-anything", version: "0.22.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -224,6 +242,9 @@ export async function startMcpServer() {
       } else if (name === "sbom_generate") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await generateSbom(args.path);
+      } else if (name === "go_reachability") {
+        if (!strArg(args.path)) return bad("缺少必填参数 path。");
+        result = await scanGoReachability(args.path);
       } else if (name === "nuclei_scan") {
         if (!strArg(args.url)) return bad("缺少必填参数 url。");
         result = await scanNuclei(args.url, {

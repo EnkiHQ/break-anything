@@ -12,6 +12,40 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.22.0] - 2026-10-23
+
+### Added
+- `goreach` — **true symbol-level reachability for Go**, via the official `govulncheck`. This is the
+  first capability that delivers the real thing rather than an import heuristic: it runs call-graph
+  analysis and tells you whether **the specific vulnerable function named in the advisory** is on an
+  actual path from your code, and prints **the call path as proof**:
+
+  ```
+  HIGH  golang.org/x/text@v0.3.0 [VULNERABLE FUNCTION CALLED]
+    CVE-2021-38561 · EPSS 1.5% · fix → 0.3.7
+    call path (proof):
+      → example.com/app.main (main.go:14)
+      → example.com/app.parseTag (main.go:10)
+      → golang.org/x/text/language.Parse (language/parse.go:228)
+  ```
+
+  - Three levels from govulncheck's analysis: `called` (strongest) > `imported` > `required`; the
+    same advisory reported at several levels is collapsed to the strongest.
+  - Exit code is non-zero **only** when a vulnerable function is actually called — the hardest signal
+    available, ideal for a CI gate that doesn't cry wolf.
+  - Go's vulnerability database carries no severity, so findings are enriched with **EPSS** and
+    **CISA KEV** and ranked by reachability → KEV → EPSS.
+  - `brk goreach [path]` plus the `go_reachability` MCP tool (11 tools total). Degrades gracefully
+    with install instructions when `govulncheck` is absent, and reports an error (never "clean") if
+    the target isn't a Go module.
+- Pure, unit-tested `classifyGovulnTrace` / `formatCallPath` / `normalizeGovulncheck` /
+  `splitJsonObjects` (96 tests total). Verified against a real Go module that genuinely calls
+  `language.Parse`.
+
+### Honest scope
+- Symbol-level reachability is Go-only for now, because Go's advisory database is the one that
+  publishes vulnerable symbols. Other ecosystems keep the documented import/call heuristic.
+
 ## [0.21.0] - 2026-10-23
 
 ### Added
@@ -300,7 +334,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/EnkiHQ/break-anything/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/EnkiHQ/break-anything/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/EnkiHQ/break-anything/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/EnkiHQ/break-anything/compare/v0.18.0...v0.19.0
