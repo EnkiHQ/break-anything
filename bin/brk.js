@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.20.0";
+const VERSION = "0.21.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -14,6 +14,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk sast [path]        静态代码分析找漏洞(需 semgrep)
   brk iac [path]         扫描 IaC 错误配置(Dockerfile/Kubernetes/Terraform,内置,免安装)
   brk api <baseUrl>      对运行中的 API 做越权(IDOR)/鉴权检测(动态,默认关闭,需授权)
+  brk nuclei <url>       用 Nuclei 社区模板扫运行中的目标(需 nuclei,动态,默认关闭,需授权)
   brk fix [path]         把依赖扫描结果变成按优先级排序的修复计划(含升级命令)
   brk sbom [path]        生成 CycloneDX SBOM(--out 写文件,--diff 旧SBOM 比对变更)
   brk ci [path]          一条命令跑完 deps+secrets+iac+sast,聚合成一份报告 + 一个门禁退出码
@@ -44,7 +45,7 @@ ci 选项:
 `;
 
 // 这些 flag 接受一个值,支持 --key=value 与 --key value 两种写法
-const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out", "fail-on", "skip", "policy", "html"]);
+const VALUE_FLAGS = new Set(["config", "top", "from", "diff", "out", "fail-on", "skip", "policy", "html", "severity", "templates"]);
 
 function parseFlags(argv) {
   const flags = {};
@@ -269,6 +270,27 @@ async function main() {
     } else {
       process.stdout.write(json + "\n");
     }
+    return;
+  }
+
+  if (cmd === "nuclei") {
+    const { flags, positional } = parseFlags(rest);
+    const url = positional[0];
+    if (!url) { process.stderr.write("用法:brk nuclei <url> [--severity critical,high] [--templates <路径>]\n"); process.exitCode = 2; return; }
+    const { scanNuclei } = await import("../src/nuclei.js");
+    const { renderNuclei } = await import("../src/report.js");
+    const result = await scanNuclei(url, {
+      severity: typeof flags.severity === "string" ? flags.severity : undefined,
+      templates: typeof flags.templates === "string" ? flags.templates : undefined,
+    });
+    if (flags.json) {
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    } else {
+      const color = flags.color !== false && process.stdout.isTTY;
+      process.stdout.write(renderNuclei(result, { color, top: flags.top ? Number(flags.top) : undefined }) + "\n");
+    }
+    const hasHigh = result.findings?.some((f) => f.severity === "CRITICAL" || f.severity === "HIGH");
+    process.exitCode = hasHigh ? 1 : 0;
     return;
   }
 

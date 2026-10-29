@@ -12,6 +12,26 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.21.0] - 2026-10-23
+
+### Added
+- `nuclei` — integrates **ProjectDiscovery Nuclei** and its ~14,000 community templates, taking DAST
+  breadth from "one authorization prober" to the full community corpus: known CVEs, exposed panels
+  and config files, default credentials, misconfigurations, subdomain takeovers.
+  - Findings are normalized into the standard envelope (severity, CVE, CWE, matched-at location,
+    extracted values, references), ranked by severity.
+  - `brk nuclei <url> [--severity critical,high] [--templates <path>] [--json]`, plus the
+    `nuclei_scan` MCP tool (10 tools total).
+  - **Same safety gate as `api`**: dynamic, off by default — requires `BRK_DYNAMIC_ENABLED=true` and
+    the target in `BRK_AUTHORIZED_TARGETS_JSON`. Degrades gracefully with install instructions when
+    the `nuclei` binary is absent.
+
+### Fixed
+- **Never report "not run" as "nothing found."** When Nuclei exits without actually scanning (most
+  commonly because the template library hasn't been installed yet), Break Anything now surfaces the
+  failure and tells you to run `nuclei -update-templates`, instead of printing a clean result. Found
+  while verifying against a real Nuclei install; covered by regression tests.
+
 ## [0.20.0] - 2026-10-23
 
 ### Added
@@ -280,7 +300,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/EnkiHQ/break-anything/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/EnkiHQ/break-anything/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/EnkiHQ/break-anything/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/EnkiHQ/break-anything/compare/v0.17.0...v0.18.0

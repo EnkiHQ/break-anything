@@ -1080,3 +1080,49 @@ test("scanAnsible:{{ 变量 }} 与 vault 引用不算硬编码密钥", () => {
   const play = "- hosts: all\n  tasks:\n    - name: x\n      debug:\n        db_password: \"{{ vault_db_password }}\"\n";
   assert.equal(scanAnsible(play, "p.yml").filter((f) => f.rule === "ansible-hardcoded-secret").length, 0);
 });
+
+// ---- Nuclei 归一化(纯函数,不触网)----
+import { normalizeNuclei, mapNucleiSeverity } from "../src/nuclei.js";
+
+test("mapNucleiSeverity:映射到我们的严重度(info→LOW)", () => {
+  assert.equal(mapNucleiSeverity("critical"), "CRITICAL");
+  assert.equal(mapNucleiSeverity("HIGH"), "HIGH");
+  assert.equal(mapNucleiSeverity("info"), "LOW");
+  assert.equal(mapNucleiSeverity("weird"), "UNKNOWN");
+});
+
+test("normalizeNuclei:解析 JSONL、提取 CVE/CWE、按严重度排序", () => {
+  const jsonl = [
+    JSON.stringify({ "template-id": "exposed-env", info: { name: "Exposed .env", severity: "medium" }, "matched-at": "https://x/.env", type: "http" }),
+    JSON.stringify({ "template-id": "CVE-2021-44228", info: { name: "Log4Shell", severity: "critical", classification: { "cve-id": ["CVE-2021-44228"], "cwe-id": ["CWE-502"] }, reference: ["https://r"] }, "matched-at": "https://x/api", "extracted-results": ["jndi:ldap"] }),
+    "not json",
+    "",
+  ].join("\n");
+  const r = normalizeNuclei(jsonl, "https://x");
+  assert.equal(r.ok, true);
+  assert.equal(r.summary.total, 2);          // 非 JSON 行被跳过
+  assert.equal(r.findings[0].severity, "CRITICAL"); // 高危排前
+  assert.equal(r.findings[0].cve, "CVE-2021-44228");
+  assert.deepEqual(r.findings[0].cwe, ["CWE-502"]);
+  assert.deepEqual(r.findings[0].evidence.extracted, ["jndi:ldap"]);
+  assert.equal(r.findings[1].rule, "exposed-env");
+});
+
+test("normalizeNuclei:空/坏输入不抛异常", () => {
+  assert.equal(normalizeNuclei("", "t").summary.total, 0);
+  assert.equal(normalizeNuclei(null, "t").findings.length, 0);
+});
+
+// 回归:nuclei 没真正跑起来(如模板库未安装)时必须报错,绝不能报成"未发现问题"
+import { detectNucleiFailure } from "../src/nuclei.js";
+
+test("detectNucleiFailure:识别 FTL / 模板缺失 / 非零退出码", () => {
+  assert.match(detectNucleiFailure("[FTL] Could not run nuclei: no templates provided for scan", 1), /no templates provided/);
+  assert.match(detectNucleiFailure('[ERR] Could not find template \'/home/u/nuclei-templates\': no templates found', 0), /Could not find template/);
+  assert.equal(detectNucleiFailure("", 2), "nuclei 退出码 2");
+});
+
+test("detectNucleiFailure:正常运行(无致命错误、退出码 0)返回 null", () => {
+  assert.equal(detectNucleiFailure("[INF] Templates loaded: 100\n[INF] Scan completed", 0), null);
+  assert.equal(detectNucleiFailure("", 0), null);
+});

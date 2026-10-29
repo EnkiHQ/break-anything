@@ -10,6 +10,7 @@ import { scanIac } from "./iac.js";
 import { fixDependencies } from "./fix.js";
 import { generateSbom } from "./sbom.js";
 import { runCi } from "./ci.js";
+import { scanNuclei } from "./nuclei.js";
 
 const TOOLS = [
   {
@@ -78,6 +79,24 @@ const TOOLS = [
         config: { type: "string", description: "Semgrep ruleset (default p/security-audit)." },
       },
       required: ["path"],
+    },
+  },
+  {
+    name: "nuclei_scan",
+    description:
+      "Run ProjectDiscovery Nuclei's community template library (thousands of checks: known CVEs, " +
+      "exposed panels and config files, default credentials, misconfigurations, takeovers) against a " +
+      "running target. Requires the nuclei binary. DYNAMIC, OFF BY DEFAULT: requires " +
+      "BRK_DYNAMIC_ENABLED=true and the target listed in BRK_AUTHORIZED_TARGETS_JSON. " +
+      "Only scan targets you own or are authorized to test.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "Target URL, e.g. https://staging.example.internal" },
+        severity: { type: "string", description: "Filter by severity, e.g. \"critical,high\"." },
+        templates: { type: "string", description: "Optional template path/tag to restrict the run." },
+      },
+      required: ["url"],
     },
   },
   {
@@ -174,7 +193,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.20.0" },
+    { name: "break-anything", version: "0.21.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -205,6 +224,12 @@ export async function startMcpServer() {
       } else if (name === "sbom_generate") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await generateSbom(args.path);
+      } else if (name === "nuclei_scan") {
+        if (!strArg(args.url)) return bad("缺少必填参数 url。");
+        result = await scanNuclei(args.url, {
+          severity: strArg(args.severity) ? args.severity : undefined,
+          templates: strArg(args.templates) ? args.templates : undefined,
+        });
       } else if (name === "ci_scan") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
         result = await runCi(args.path, {

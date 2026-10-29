@@ -452,3 +452,46 @@ export function renderCi(result, { color = true } = {}) {
   }
   return lines.join("\n");
 }
+
+// ---- Nuclei ----
+export function renderNuclei(result, { color = true, top } = {}) {
+  const c = palette(color);
+  const zh = LANG === "zh";
+  const lines = [];
+  lines.push(`${c.bold}Break Anything · ${zh ? "Nuclei 模板扫描" : "Nuclei template scan"}${c.reset} ${c.gray}(nuclei)${c.reset}`);
+
+  if (!result.ok) {
+    lines.push("");
+    lines.push(`${c.yellow}${result.message}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  lines.push(`${c.gray}${result.target}${c.reset}`);
+  lines.push("");
+  if (!result.findings.length) {
+    lines.push(`${c.green}${zh ? "✓ Nuclei 模板未发现问题。" : "✓ No findings from the Nuclei templates."}${c.reset}`);
+    lines.push(`${c.gray}${T.cleanNote}${c.reset}`);
+    return lines.join("\n");
+  }
+
+  const shown = top && result.findings.length > top ? result.findings.slice(0, top) : result.findings;
+  for (const f of shown) {
+    const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
+    const tags = [f.cve, ...(f.cwe || [])].filter(Boolean).join(" · ");
+    lines.push(`${sev} ${c.bold}${f.title}${c.reset}${tags ? ` ${c.gray}${tags}${c.reset}` : ""}`);
+    lines.push(`  ${c.cyan}${f.rule}${c.reset}  ${c.gray}${f.location}${c.reset}`);
+    if (f.evidence && f.evidence.extracted && f.evidence.extracted.length) {
+      lines.push(`  ${c.red}${zh ? "提取到" : "extracted"}: ${f.evidence.extracted.join(", ").slice(0, 120)}${c.reset}`);
+    }
+    lines.push("");
+  }
+  if (shown.length < result.findings.length) {
+    lines.push(`${c.gray}${T.more(result.findings.length - shown.length)}${c.reset}`);
+    lines.push("");
+  }
+
+  const s = result.summary;
+  const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
+  lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${parts}`);
+  return lines.join("\n");
+}

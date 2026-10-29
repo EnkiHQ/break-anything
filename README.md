@@ -276,6 +276,7 @@ already run in real pipelines. ✅ shipped · 🧭 on the roadmap.
 - **Infrastructure as Code (IaC)** — **5 formats: Dockerfile, Kubernetes, Terraform, CloudFormation (YAML+JSON), Ansible.** Root containers, privileged pods, world-open CIDRs, public buckets, wildcard IAM, disabled encryption, publicly-exposed databases, disabled TLS verification, baked-in secrets — each with file/line, CWE, and a fix. **Built in — no engine to install.**
 - **Container images** — OS + app CVEs, Dockerfile smells, secrets in layers. Engine: [Trivy](https://github.com/aquasecurity/trivy).
 - **API security (DAST)** — probe a *running* API for broken object-level authorization (IDOR/BOLA), missing auth, and missing security headers, each **proven with the reproducing request**. Built in; off by default, authorized targets only.
+- **Nuclei templates (DAST)** — ~14,000 [Nuclei](https://github.com/projectdiscovery/nuclei) community templates against your authorized target: known CVEs, exposed panels and config files, default credentials, takeovers. Off by default, authorized targets only.
 - **Fix planning** — the minimal safe upgrade that clears the most CVEs per package, ordered by reachability then severity, with the exact `npm`/`pip`/`composer` command. No-fix packages get mitigation guidance.
 - **Standards output** — CycloneDX SBOM generation + diff, and SARIF 2.1.0 for every scanner.
 - **One-shot CI gate** — `ci` runs deps + secrets + IaC + SAST in one command, one report, one merged SARIF, one exit code.
@@ -284,7 +285,7 @@ already run in real pipelines. ✅ shipped · 🧭 on the roadmap.
 
 - **More SAST engines** — [CodeQL](https://codeql.github.com), Bandit (Python), gosec (Go), Brakeman (Rails), Find-Sec-Bugs (Java), security-code-scan (.NET), retire.js (frontend).
 - **Deeper IaC & cloud** — opt-in [Checkov](https://www.checkov.io) / tfsec / [KICS](https://kics.io) / [Kubescape](https://github.com/kubescape/kubescape) backends; CloudFormation, ARM/Bicep, Ansible; CSPM via [Prowler](https://github.com/prowler-cloud/prowler) / ScoutSuite.
-- **More DAST & attack surface** — OWASP Top 10, content/parameter discovery, XSS, injection on top of today's authorization prober. [OWASP ZAP](https://www.zaproxy.org), [Nuclei](https://github.com/projectdiscovery/nuclei), [sqlmap](https://sqlmap.org); surface mapping via [Nmap](https://nmap.org) + ProjectDiscovery.
+- **More DAST & attack surface** — content/parameter discovery, XSS and injection fuzzing on top of today's authorization prober + Nuclei corpus. [OWASP ZAP](https://www.zaproxy.org), [sqlmap](https://sqlmap.org), [ffuf](https://github.com/ffuf/ffuf); surface mapping via [Nmap](https://nmap.org) + ProjectDiscovery.
 - **Call-graph reachability** — from "the symbol is called" to "the specific vulnerable function is on a real path."
 - **AI/LLM · binary · mobile · fuzzing** — [Garak](https://github.com/NVIDIA/garak) · [Ghidra](https://ghidra-sre.org)/[angr](https://github.com/angr/angr) · [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) · [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 - **Offensive / exploitation** — *authorized pentest only; gated, off by default, written permission required.* [Metasploit](https://www.metasploit.com), [Hydra](https://github.com/vanhauser-thc/thc-hydra), [BloodHound](https://github.com/SpecterOps/BloodHound).
