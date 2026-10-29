@@ -12,6 +12,20 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.19.0] - 2026-10-23
+
+### Added
+- **Four more dependency ecosystems**, all via OSV, all built in:
+  - **Gradle** (Java/Kotlin) — `gradle.lockfile`, mapped to the `Maven` ecosystem (`group:artifact`).
+  - **Dart / Flutter** — `pubspec.lock` (`Pub`), with direct vs transitive from the `dependency:` field.
+  - **Elixir** — `mix.lock` (`Hex`), the `:hex` entries.
+  - **Swift** — `Package.resolved` v1 & v2 (`SwiftURL`), repo URL normalized to OSV's form.
+  - Reachability now also walks `.dart`, `.ex`, `.exs`, `.swift` sources.
+- Break Anything now covers **12 dependency ecosystems**: npm (package-lock/yarn/pnpm), PyPI,
+  Composer, Go, Rust, Ruby, Maven, Gradle, NuGet, Dart, Elixir, Swift.
+- Pure, unit-tested parsers for each (81 tests total). Verified live against OSV (e.g. Gradle
+  log4j-core 2.14.1 → Log4Shell).
+
 ## [0.18.0] - 2026-10-23
 
 ### Added
@@ -252,7 +266,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/EnkiHQ/break-anything/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/EnkiHQ/break-anything/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/EnkiHQ/break-anything/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/EnkiHQ/break-anything/compare/v0.15.0...v0.16.0

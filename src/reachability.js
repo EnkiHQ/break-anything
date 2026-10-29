@@ -9,7 +9,7 @@ import path from "node:path";
 // 诚实边界:`called` 表示「导入的符号被调用」,仍不等于「公告里那个具体的脆弱函数被执行」。
 // 调用检测目前覆盖 JS/TS(.js/.mjs/.cjs/.jsx/.ts/.tsx/.vue);PHP/Python 只做到 import 粒度。
 
-const SOURCE_EXT = new Set([".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".vue", ".php", ".py", ".go", ".rs", ".rb", ".java", ".kt", ".cs"]);
+const SOURCE_EXT = new Set([".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".vue", ".php", ".py", ".go", ".rs", ".rb", ".java", ".kt", ".cs", ".dart", ".ex", ".exs", ".swift"]);
 const JS_EXT = new Set([".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".vue"]);
 const SKIP_DIR = new Set(["node_modules", ".git", "dist", "build", "vendor", ".venv", "venv", "__pycache__"]);
 

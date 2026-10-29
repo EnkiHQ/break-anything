@@ -932,3 +932,78 @@ test("renderHtml:发现内容里的 HTML 被转义(防 XSS)", () => {
   assert.ok(html.includes("&lt;script&gt;evil&lt;/script&gt;"));
   assert.ok(!html.includes("<img src=x onerror"));
 });
+
+// ---- Gradle / Dart / Elixir / Swift lockfile 解析(纯函数)----
+import { parseGradleLockfileText, parsePubLockText, parseMixLockText, parseSwiftResolved, normalizeSwiftUrl } from "../src/lockfiles.js";
+
+test("parseGradleLockfileText:Maven 坐标,忽略注释与 empty=", () => {
+  const text = [
+    "# Gradle generated",
+    "com.fasterxml.jackson.core:jackson-databind:2.9.8=compileClasspath,runtimeClasspath",
+    "org.apache.logging.log4j:log4j-core:2.14.1=runtimeClasspath",
+    "empty=",
+  ].join("\n");
+  const { packages } = parseGradleLockfileText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["com.fasterxml.jackson.core:jackson-databind"], "2.9.8");
+  assert.equal(byName["org.apache.logging.log4j:log4j-core"], "2.14.1");
+  assert.equal(packages.length, 2);
+});
+
+test("parsePubLockText:packages 段,direct/transitive 区分", () => {
+  const text = [
+    "packages:",
+    "  http:",
+    '    dependency: "direct main"',
+    "    description:",
+    "      name: http",
+    "    source: hosted",
+    '    version: "0.13.0"',
+    "  async:",
+    "    dependency: transitive",
+    '    version: "2.8.0"',
+    "sdks:",
+    '  dart: ">=2.12.0"',
+  ].join("\n");
+  const { packages, direct } = parsePubLockText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["http"], "0.13.0");
+  assert.equal(byName["async"], "2.8.0");
+  assert.equal(direct.has("http"), true);
+  assert.equal(direct.has("async"), false);
+});
+
+test("parseMixLockText:只取 :hex 条目的名与版本", () => {
+  const text = [
+    "%{",
+    '  "plug": {:hex, :plug, "1.0.0", "hash", [:mix], [], "hexpm"},',
+    '  "bcrypt": {:hex, :bcrypt_elixir, "2.3.0", "hash", [:make, :mix], []},',
+    "}",
+  ].join("\n");
+  const { packages } = parseMixLockText(text);
+  const byName = Object.fromEntries(packages.map((p) => [p.name, p.version]));
+  assert.equal(byName["plug"], "1.0.0");
+  assert.equal(byName["bcrypt_elixir"], "2.3.0");
+});
+
+test("normalizeSwiftUrl + parseSwiftResolved:v2 pins → SwiftURL 名", () => {
+  assert.equal(normalizeSwiftUrl("https://github.com/apple/swift-nio.git"), "github.com/apple/swift-nio");
+  assert.equal(normalizeSwiftUrl("git@github.com:apple/swift-nio.git"), "github.com/apple/swift-nio");
+  const v2 = JSON.stringify({ pins: [
+    { identity: "swift-nio", location: "https://github.com/apple/swift-nio.git", state: { version: "2.29.0" } },
+    { identity: "branchpin", location: "https://github.com/x/y.git", state: { branch: "main" } },
+  ], version: 2 });
+  const { packages } = parseSwiftResolved(v2);
+  assert.equal(packages.length, 1); // 只固定了分支的那条被跳过
+  assert.equal(packages[0].name, "github.com/apple/swift-nio");
+  assert.equal(packages[0].version, "2.29.0");
+});
+
+test("parseSwiftResolved:v1 object.pins 也兼容", () => {
+  const v1 = JSON.stringify({ object: { pins: [
+    { package: "swift-nio", repositoryURL: "https://github.com/apple/swift-nio.git", state: { version: "2.0.0" } },
+  ] }, version: 1 });
+  const { packages } = parseSwiftResolved(v1);
+  assert.equal(packages[0].name, "github.com/apple/swift-nio");
+  assert.equal(packages[0].version, "2.0.0");
+});

@@ -17,7 +17,7 @@ tools are **off by default** and refuse any target not on the authorization allo
 | **Status** | ✅ shipped |
 | **Primary engine** | OSV.dev query API (built-in, no install) |
 | **Additional engines** | Trivy, Grype, pip-audit, govulncheck, cargo-audit, bundler-audit, `composer audit`, OWASP Dependency-Check |
-| **Ecosystems** | shipped: npm, PyPI, Composer (PHP), Go, crates.io (Rust), RubyGems, Maven (Java), NuGet (.NET) · roadmap: Gradle lockfile, full Maven transitive resolution |
+| **Ecosystems** | shipped (12): npm (package-lock/yarn/pnpm), PyPI, Composer (PHP), Go, crates.io (Rust), RubyGems, Maven + Gradle (Java), NuGet (.NET), Pub (Dart), Hex (Elixir), SwiftURL (SPM) · roadmap: full Maven/Gradle transitive resolution |
 | **Intel overlay** | ✅ CISA KEV (actively exploited), ✅ EPSS (exploit probability) · GitHub Advisory (roadmap) |
 | **SBOM** | ✅ CycloneDX 1.5 generation + diff via `sbom` / `sbom_generate` (`brk sbom <path> [--out f] [--diff old.json]`) |
 | **Signal** | two-tier reachability: `called` (an imported symbol is invoked in your code) > `imported` > `direct` > `transitive`; call-path-to-vulnerable-symbol on the roadmap |

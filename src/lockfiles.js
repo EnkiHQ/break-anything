@@ -37,6 +37,18 @@ export async function loadLockfiles(targetPath) {
   const nugetLock = path.join(dir, "packages.lock.json");
   if (await exists(nugetLock)) out.push(await parseNugetLockFile(nugetLock));
 
+  const gradleLock = path.join(dir, "gradle.lockfile");
+  if (await exists(gradleLock)) out.push(await parseGradleLockFile(gradleLock));
+
+  const pubLock = path.join(dir, "pubspec.lock");
+  if (await exists(pubLock)) out.push(await parsePubLockFile(pubLock));
+
+  const mixLock = path.join(dir, "mix.lock");
+  if (await exists(mixLock)) out.push(await parseMixLockFile(mixLock));
+
+  const swiftResolved = path.join(dir, "Package.resolved");
+  if (await exists(swiftResolved)) out.push(await parseSwiftResolvedFile(swiftResolved));
+
   return { dir, sources: out.filter(Boolean) };
 }
 
@@ -423,5 +435,135 @@ async function parsePnpmLockFile(file, dir) {
     file,
     packages: packages.map((p) => ({ ...p, ecosystem: "npm", direct: direct.has(p.name) })),
     manifestDirect: direct,
+  };
+}
+
+// ---- Java/Gradle: gradle.lockfile(Maven 坐标 group:artifact:version=classpaths)----
+export function parseGradleLockfileText(text) {
+  const packages = [];
+  const seen = new Set();
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#") || line.startsWith("empty=")) continue;
+    const m = line.match(/^([^\s:]+:[^\s:]+):([^=\s]+)=/);
+    if (m) {
+      const name = m[1];
+      const version = m[2];
+      const key = `${name}@${version}`;
+      if (!seen.has(key)) { seen.add(key); packages.push({ name, version }); }
+    }
+  }
+  return { packages };
+}
+
+async function parseGradleLockFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages } = parseGradleLockfileText(text);
+  return {
+    ecosystem: "Maven",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "Maven", direct: false })),
+    manifestDirect: new Set(),
+  };
+}
+
+// ---- Dart/Flutter: pubspec.lock(YAML;dependency: "direct ..." 为直接依赖)----
+export function parsePubLockText(text) {
+  const packages = [];
+  const direct = new Set();
+  let section = null;
+  let cur = null, curDep = null, curVer = null;
+  const flush = () => {
+    if (cur && curVer) {
+      packages.push({ name: cur, version: curVer });
+      if (curDep && /^direct/.test(curDep)) direct.add(cur);
+    }
+    cur = null; curDep = null; curVer = null;
+  };
+  for (const raw of text.split(/\r?\n/)) {
+    if (/^\S/.test(raw)) { flush(); section = raw.trim().replace(/:$/, ""); continue; }
+    if (section !== "packages") continue;
+    const nameM = raw.match(/^ {2}([A-Za-z0-9_.]+):\s*$/);
+    if (nameM) { flush(); cur = nameM[1]; continue; }
+    const depM = raw.match(/^ {4}dependency:\s*"?([^"]+)"?\s*$/);
+    if (depM) { curDep = depM[1].trim(); continue; }
+    const verM = raw.match(/^ {4}version:\s*"?([^"]+)"?\s*$/);
+    if (verM) { curVer = verM[1].trim(); continue; }
+  }
+  flush();
+  return { packages, direct };
+}
+
+async function parsePubLockFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages, direct } = parsePubLockText(text);
+  return {
+    ecosystem: "Pub",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "Pub", direct: direct.has(p.name) })),
+    manifestDirect: direct,
+  };
+}
+
+// ---- Elixir: mix.lock(%{ "name": {:hex, :pkg, "ver", ...} })----
+export function parseMixLockText(text) {
+  const packages = [];
+  const seen = new Set();
+  const re = /\{:hex,\s*:([A-Za-z0-9_]+),\s*"([^"]+)"/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const name = m[1];
+    const version = m[2];
+    const key = `${name}@${version}`;
+    if (!seen.has(key)) { seen.add(key); packages.push({ name, version }); }
+  }
+  return { packages };
+}
+
+async function parseMixLockFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages } = parseMixLockText(text);
+  return {
+    ecosystem: "Hex",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "Hex", direct: false })),
+    manifestDirect: new Set(),
+  };
+}
+
+// ---- Swift: Package.resolved(JSON;v1 object.pins / v2 pins)。OSV 的 SwiftURL 包名是去协议的仓库 URL ----
+export function normalizeSwiftUrl(url) {
+  let u = String(url || "").trim().replace(/^git\+/, "");
+  u = u.replace(/^https?:\/\//, "").replace(/^git@/, "");
+  u = u.replace(/:/, "/");        // git@github.com:apple/x → github.com/apple/x
+  u = u.replace(/\.git$/, "").replace(/\/+$/, "");
+  return u;
+}
+
+export function parseSwiftResolved(json) {
+  let data = json;
+  if (typeof json === "string") { try { data = JSON.parse(json); } catch { return { packages: [] }; } }
+  const pins = (data && (data.pins || (data.object && data.object.pins))) || [];
+  const packages = [];
+  const seen = new Set();
+  for (const pin of pins) {
+    const url = pin.location || pin.repositoryURL;
+    const version = pin.state && pin.state.version;
+    if (!url || !version) continue; // 分支/revision 固定的跳过
+    const name = normalizeSwiftUrl(url);
+    const key = `${name}@${version}`;
+    if (!seen.has(key)) { seen.add(key); packages.push({ name, version }); }
+  }
+  return { packages };
+}
+
+async function parseSwiftResolvedFile(file) {
+  const text = await readFile(file, "utf8");
+  const { packages } = parseSwiftResolved(text);
+  return {
+    ecosystem: "SwiftURL",
+    file,
+    packages: packages.map((p) => ({ ...p, ecosystem: "SwiftURL", direct: false })),
+    manifestDirect: new Set(),
   };
 }

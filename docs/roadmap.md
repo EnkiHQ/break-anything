@@ -8,9 +8,10 @@ as the shipped scanners.
 
 ## Shipped (0.15.0)
 
-- **Supply chain / dependencies (SCA)** — npm (package-lock / yarn / pnpm), PyPI, Composer (PHP),
-  Go, Rust (crates.io), Ruby (RubyGems), Maven (Java), NuGet (.NET); OSV lookup, two-tier
-  reachability (`called` > `imported`), EPSS, **CISA KEV (known-exploited)**, fix versions.
+- **Supply chain / dependencies (SCA)** — 12 ecosystems: npm (package-lock / yarn / pnpm), PyPI,
+  Composer (PHP), Go, Rust, Ruby, Maven + Gradle (Java), NuGet (.NET), Dart (Pub), Elixir (Hex),
+  Swift (SPM); OSV lookup, two-tier reachability (`called` > `imported`), EPSS, **CISA KEV
+  (known-exploited)**, fix versions.
 - **Secrets** — working tree + git history, redacted output.
 - **Container images** — via Trivy.
 - **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,
