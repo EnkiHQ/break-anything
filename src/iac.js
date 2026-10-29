@@ -16,8 +16,19 @@ export function classifyIac(filename, content = "") {
   const base = path.basename(filename).toLowerCase();
   if (base === "dockerfile" || base.startsWith("dockerfile.") || base.endsWith(".dockerfile")) return "dockerfile";
   if (base.endsWith(".tf")) return "terraform";
+
+  // CloudFormation 可以是 JSON 或 YAML:认模板版本声明,或 Resources 里出现 AWS:: 资源类型
+  const looksCfn = /AWSTemplateFormatVersion/.test(content) ||
+    (/["']?Resources["']?\s*:/.test(content) && /["']?Type["']?\s*:\s*["']?AWS::/.test(content));
+  if (base.endsWith(".json")) return looksCfn ? "cloudformation" : null;
+
   if (base.endsWith(".yaml") || base.endsWith(".yml")) {
     if (/^\s*apiVersion:/m.test(content) && /^\s*kind:\s*\S/m.test(content)) return "kubernetes";
+    if (looksCfn) return "cloudformation";
+    // Ansible:playbook(hosts + tasks/roles)或 tasks 文件(顶层列表里带模块调用)
+    const isPlaybook = /^\s*-?\s*hosts:\s*\S/m.test(content) && /^\s*(tasks|roles):/m.test(content);
+    const isTasks = /^\s*-\s+(name|ansible\.builtin\.\w+|shell|command|copy|template|get_url|file|user|apt|yum):/m.test(content);
+    if (isPlaybook || isTasks) return "ansible";
   }
   return null;
 }
@@ -150,7 +161,94 @@ export function scanTerraform(content, file = "main.tf") {
   return out;
 }
 
-const SCANNERS = { dockerfile: scanDockerfile, kubernetes: scanKubernetes, terraform: scanTerraform };
+// ---- AWS CloudFormation(纯函数,可单测;JSON 与 YAML 都按行匹配)----
+export function scanCloudFormation(content, file = "template.yaml") {
+  const lines = content.split(/\r?\n/);
+  const out = [];
+  lines.forEach((raw, i) => {
+    const line = raw.replace(/#.*$/, "");
+
+    if (/\b0\.0\.0\.0\/0/.test(line) && /CidrIp/i.test(line)) {
+      out.push(finding({ kind: "cloudformation", rule: "cfn-open-cidr", severity: "HIGH", cwe: "CWE-284",
+        title: "Security group open to the entire internet (0.0.0.0/0)", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Restrict CidrIp to known source ranges instead of 0.0.0.0/0." }));
+    }
+    if (/["']?AccessControl["']?\s*:\s*["']?(PublicRead|PublicReadWrite)["']?/i.test(line)) {
+      out.push(finding({ kind: "cloudformation", rule: "cfn-public-bucket", severity: "HIGH", cwe: "CWE-732",
+        title: "S3 bucket ACL is publicly readable", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Use AccessControl: Private plus an explicit bucket policy; enable PublicAccessBlockConfiguration." }));
+    }
+    // IAM 通配:Action/Resource 为 "*"(含 YAML 列表项 - "*")
+    if (/["']?(Action|Resource)["']?\s*:\s*["']\*["']\s*,?\s*$/i.test(line)) {
+      out.push(finding({ kind: "cloudformation", rule: "cfn-iam-wildcard", severity: "HIGH", cwe: "CWE-732",
+        title: "IAM policy grants wildcard (*) access", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Scope the policy to the specific actions and resource ARNs actually required." }));
+    }
+    if (/["']?(Encrypted|StorageEncrypted)["']?\s*:\s*["']?false["']?/i.test(line)) {
+      out.push(finding({ kind: "cloudformation", rule: "cfn-unencrypted", severity: "MEDIUM", cwe: "CWE-311",
+        title: "Encryption at rest disabled", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Set Encrypted/StorageEncrypted to true (and supply a KMS key where applicable)." }));
+    }
+    const sec = line.match(/["']?([A-Za-z0-9_]*(?:Password|Secret|Token|AccessKey)[A-Za-z0-9_]*)["']?\s*:\s*["']([^"']{6,})["']/);
+    if (sec && !/\{\{|!Ref|!Sub|\$\{|Fn::/.test(sec[2])) {
+      out.push(finding({ kind: "cloudformation", rule: "cfn-hardcoded-secret", severity: "HIGH", cwe: "CWE-798",
+        title: `Hardcoded secret in "${sec[1]}"`, location: lineAt(lines, i, file), evidence: `${sec[1]}: <redacted>`,
+        remediation: "Reference AWS Secrets Manager / SSM Parameter Store instead of a literal value." }));
+    }
+    if (/["']?PubliclyAccessible["']?\s*:\s*["']?true["']?/i.test(line)) {
+      out.push(finding({ kind: "cloudformation", rule: "cfn-public-db", severity: "HIGH", cwe: "CWE-668",
+        title: "Database instance is publicly accessible", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Set PubliclyAccessible: false and reach the database from inside the VPC." }));
+    }
+  });
+  return out;
+}
+
+// ---- Ansible(纯函数,可单测)----
+export function scanAnsible(content, file = "playbook.yml") {
+  const lines = content.split(/\r?\n/);
+  const out = [];
+  lines.forEach((raw, i) => {
+    const line = raw.replace(/#.*$/, "");
+
+    if (/\bvalidate_certs\s*:\s*(no|false)\b/i.test(line)) {
+      out.push(finding({ kind: "ansible", rule: "ansible-no-cert-validation", severity: "HIGH", cwe: "CWE-295",
+        title: "TLS certificate validation disabled", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Remove validate_certs: no — disabling it allows man-in-the-middle interception." }));
+    }
+    if (/\bmode\s*:\s*["']?0?777["']?/.test(line)) {
+      out.push(finding({ kind: "ansible", rule: "ansible-world-writable", severity: "MEDIUM", cwe: "CWE-732",
+        title: "File mode 0777 is world-writable", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Grant the narrowest mode that works (e.g. 0644 for files, 0755 for directories)." }));
+    }
+    if (/\b(url|get_url|src)\s*:\s*["']?http:\/\//i.test(line)) {
+      out.push(finding({ kind: "ansible", rule: "ansible-cleartext-download", severity: "MEDIUM", cwe: "CWE-319",
+        title: "Artifact fetched over cleartext HTTP", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Use https:// and verify a checksum so the payload can't be swapped in transit." }));
+    }
+    const sec = line.match(/\b([a-z0-9_]*(?:password|passwd|secret|api_key|token)[a-z0-9_]*)\s*:\s*["']?([^"'\s{][^"'\s]{5,})["']?\s*$/i);
+    if (sec && !/\{\{|^vault|\$ANSIBLE_VAULT|lookup\(/i.test(sec[2])) {
+      out.push(finding({ kind: "ansible", rule: "ansible-hardcoded-secret", severity: "HIGH", cwe: "CWE-798",
+        title: `Hardcoded secret in "${sec[1]}"`, location: lineAt(lines, i, file), evidence: `${sec[1]}: <redacted>`,
+        remediation: "Store it in Ansible Vault or an external secret manager and reference it via a variable." }));
+    }
+    if (/^\s*-?\s*become\s*:\s*(yes|true)\b/i.test(line) && /become_user\s*:\s*root/i.test(content)) {
+      // 仅在显式提权到 root 时提示,避免对正常 become 刷噪音
+      out.push(finding({ kind: "ansible", rule: "ansible-root-escalation", severity: "LOW", cwe: "CWE-250",
+        title: "Task escalates privileges to root", location: lineAt(lines, i, file), evidence: snip(raw),
+        remediation: "Escalate to the least-privileged account that can perform the task." }));
+    }
+  });
+  return out;
+}
+
+const SCANNERS = {
+  dockerfile: scanDockerfile,
+  kubernetes: scanKubernetes,
+  terraform: scanTerraform,
+  cloudformation: scanCloudFormation,
+  ansible: scanAnsible,
+};
 const SKIP_DIRS = new Set([".git", "node_modules", "vendor", ".terraform", "dist", "build", ".next", "__pycache__"]);
 const MAX_FILES = 2000;
 const MAX_BYTES = 1_000_000;

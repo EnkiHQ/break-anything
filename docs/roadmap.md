@@ -16,9 +16,10 @@ as the shipped scanners.
 - **Container images** — via Trivy.
 - **Static code (SAST)** — via Semgrep: injection, broken access control, deserialization, SSRF,
   with CWE/OWASP tags and the offending snippet.
-- **Infrastructure as Code (IaC)** — built-in, no external engine: Dockerfile, Kubernetes, and
-  Terraform misconfigurations (root containers, privileged pods, world-open CIDRs, public buckets,
-  baked-in secrets) with file/line, CWE, and a fix.
+- **Infrastructure as Code (IaC)** — built-in, no external engine; 5 formats: Dockerfile,
+  Kubernetes, Terraform, CloudFormation (YAML+JSON), Ansible — root containers, privileged pods,
+  world-open CIDRs, public buckets, wildcard IAM, disabled encryption, public databases, disabled
+  TLS verification, baked-in secrets — with file/line, CWE, and a fix.
 - **API security (DAST)** — dynamic probe of a running API for broken object-level authorization
   (IDOR/BOLA), missing authentication, and missing security headers, each with the reproducing
   request as proof. Off by default; authorized targets only.

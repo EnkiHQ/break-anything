@@ -237,7 +237,7 @@ jobs:
 - **依赖(SCA)** — 整棵依赖树的已知 CVE,按**可达性** + [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)(在野已利用)+ [EPSS](https://www.first.org/epss/)(被利用概率)排序,带修复版本。由 [OSV](https://osv.dev) 驱动。**12 个生态:** npm(package-lock / yarn / pnpm)、PyPI、Composer(PHP)、Go、Rust(crates.io)、Ruby(RubyGems)、Maven + Gradle(Java)、NuGet(.NET)、Dart(Pub)、Elixir(Hex)、Swift(SPM)。
 - **密钥(Secrets)** — 工作区 + 完整 git 历史里的泄露 key/令牌/私钥,输出里脱敏。内置;识别 AWS、GCP、GitHub、GitLab、Slack、Stripe、OpenAI、JWT、私钥和通用赋值密钥。
 - **静态代码(SAST)** — 注入、越权、不安全反序列化、SSRF、硬编码密钥——每条带文件/行号、CWE/OWASP 标签和命中片段。引擎:[Semgrep](https://semgrep.dev)。
-- **基础设施即代码(IaC)** — Dockerfile、Kubernetes、Terraform 的错误配置(以 root 运行的容器、特权 Pod、对全网开放的 CIDR、公开桶、烤进镜像的密钥),每条带文件/行号、CWE 和修复建议。**内置,免装任何引擎。**
+- **基础设施即代码(IaC)** — **5 种格式:Dockerfile、Kubernetes、Terraform、CloudFormation(YAML+JSON)、Ansible。** 以 root 运行的容器、特权 Pod、对全网开放的 CIDR、公开桶、通配 IAM、关闭的加密、公网暴露的数据库、关掉的 TLS 校验、烤进镜像的密钥——每条带文件/行号、CWE 和修复建议。**内置,免装任何引擎。**
 - **容器镜像** — OS + 应用层 CVE、Dockerfile 坏味道、层里的密钥。引擎:[Trivy](https://github.com/aquasecurity/trivy)。
 - **API 安全(DAST)** — 对一个*运行中*的 API 探测越权(IDOR/BOLA)、缺失鉴权、缺失安全响应头,每条都**带可复现的请求作为证据**。内置;默认关闭,仅限授权目标。
 - **修复规划(Fix)** — 每个包算出"能一次消掉最多 CVE 的最小安全版本",按可达性再按严重度排序,给出确切的 `npm`/`pip`/`composer` 命令。没有修复版本的单列并给缓解建议。

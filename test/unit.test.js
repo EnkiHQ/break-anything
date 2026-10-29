@@ -1007,3 +1007,76 @@ test("parseSwiftResolved:v1 object.pins 也兼容", () => {
   assert.equal(packages[0].name, "github.com/apple/swift-nio");
   assert.equal(packages[0].version, "2.0.0");
 });
+
+// ---- IaC 深化:CloudFormation / Ansible(纯函数)----
+import { scanCloudFormation, scanAnsible } from "../src/iac.js";
+
+test("classifyIac:识别 CloudFormation(JSON/YAML)与 Ansible", () => {
+  assert.equal(classifyIac("tpl.yaml", "AWSTemplateFormatVersion: '2010-09-09'\nResources:\n"), "cloudformation");
+  assert.equal(classifyIac("tpl.json", '{"Resources":{"B":{"Type":"AWS::S3::Bucket"}}}'), "cloudformation");
+  assert.equal(classifyIac("play.yml", "- hosts: web\n  tasks:\n    - name: x\n"), "ansible");
+  // k8s 优先级高于 ansible 误判
+  assert.equal(classifyIac("d.yaml", "apiVersion: apps/v1\nkind: Deployment\n"), "kubernetes");
+  assert.equal(classifyIac("plain.json", '{"a":1}'), null);
+});
+
+test("scanCloudFormation:开放 CIDR / 公开桶 / IAM 通配 / 未加密 / 公网库 / 硬编码密钥", () => {
+  const tpl = [
+    "AWSTemplateFormatVersion: '2010-09-09'",
+    "Resources:",
+    "  SG:",
+    "    Properties:",
+    "      SecurityGroupIngress:",
+    "        - CidrIp: 0.0.0.0/0",
+    "  Bucket:",
+    "    Properties:",
+    "      AccessControl: PublicRead",
+    "  Policy:",
+    "    Properties:",
+    '      Action: "*"',
+    "  Vol:",
+    "    Properties:",
+    "      Encrypted: false",
+    "  DB:",
+    "    Properties:",
+    "      PubliclyAccessible: true",
+    '      MasterUserPassword: "hunter2plain"',
+  ].join("\n");
+  const rules = scanCloudFormation(tpl, "tpl.yaml").map((f) => f.rule);
+  for (const r of ["cfn-open-cidr", "cfn-public-bucket", "cfn-iam-wildcard", "cfn-unencrypted", "cfn-public-db", "cfn-hardcoded-secret"]) {
+    assert.ok(rules.includes(r), `应命中 ${r}`);
+  }
+  // 密钥值不回显
+  const sec = scanCloudFormation(tpl, "tpl.yaml").find((f) => f.rule === "cfn-hardcoded-secret");
+  assert.ok(!JSON.stringify(sec).includes("hunter2plain"));
+});
+
+test("scanCloudFormation:!Ref / Fn:: 引用不算硬编码密钥", () => {
+  const tpl = 'Resources:\n  DB:\n    Properties:\n      MasterUserPassword: !Ref DbPassword\n';
+  assert.equal(scanCloudFormation(tpl, "t.yaml").filter((f) => f.rule === "cfn-hardcoded-secret").length, 0);
+});
+
+test("scanAnsible:关证书校验 / 0777 / http 下载 / 硬编码密钥", () => {
+  const play = [
+    "- hosts: web",
+    "  tasks:",
+    "    - name: fetch",
+    "      get_url:",
+    "        url: http://example.com/app.tar.gz",
+    "        validate_certs: no",
+    "        mode: '0777'",
+    "    - name: cfg",
+    "      lineinfile:",
+    "        db_password: supersecret123",
+  ].join("\n");
+  const rules = scanAnsible(play, "play.yml").map((f) => f.rule);
+  assert.ok(rules.includes("ansible-no-cert-validation"));
+  assert.ok(rules.includes("ansible-world-writable"));
+  assert.ok(rules.includes("ansible-cleartext-download"));
+  assert.ok(rules.includes("ansible-hardcoded-secret"));
+});
+
+test("scanAnsible:{{ 变量 }} 与 vault 引用不算硬编码密钥", () => {
+  const play = "- hosts: all\n  tasks:\n    - name: x\n      debug:\n        db_password: \"{{ vault_db_password }}\"\n";
+  assert.equal(scanAnsible(play, "p.yml").filter((f) => f.rule === "ansible-hardcoded-secret").length, 0);
+});

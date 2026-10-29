@@ -12,6 +12,20 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.20.0] - 2026-10-23
+
+### Added
+- **IaC coverage deepened** — `iac` now also scans, still with no external engine:
+  - **AWS CloudFormation** (YAML *and* JSON, auto-detected): security groups open to `0.0.0.0/0`,
+    public-read S3 ACLs, wildcard IAM `Action`/`Resource`, encryption-at-rest disabled,
+    publicly-accessible databases, hardcoded secrets (CWE-284/311/668/732/798). `!Ref`, `!Sub` and
+    `Fn::` references are correctly *not* flagged as hardcoded.
+  - **Ansible** (playbooks and task files): `validate_certs: no` (CWE-295), world-writable `0777`
+    modes (CWE-732), artifacts fetched over cleartext HTTP (CWE-319), hardcoded secrets (CWE-798),
+    root privilege escalation (CWE-250). `{{ vars }}` and Vault references are not flagged.
+  - IaC formats covered: Dockerfile, Kubernetes, Terraform, CloudFormation, Ansible.
+- Pure, unit-tested `scanCloudFormation` / `scanAnsible` plus extended `classifyIac` (86 tests total).
+
 ## [0.19.0] - 2026-10-23
 
 ### Added
@@ -266,7 +280,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/EnkiHQ/break-anything/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/EnkiHQ/break-anything/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/EnkiHQ/break-anything/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/EnkiHQ/break-anything/compare/v0.16.0...v0.17.0
