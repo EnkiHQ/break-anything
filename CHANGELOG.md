@@ -12,6 +12,28 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.25.0] - 2026-10-23
+
+### Fixed
+- **`fix` no longer claims "nothing to fix" when there is.** It only ever looked at dependencies, so
+  a repo with a leaked AWS key and a root-running Dockerfile but clean dependencies was told
+  "nothing to fix — no vulnerable dependencies found." That's the same class of misleading output as
+  the Nuclei bug in 0.21.0, and it's gone.
+
+### Changed
+- `fix` now produces a **unified remediation plan** across everything it can find, in the order you
+  should act:
+  1. **Rotate these secrets** — credentials confirmed `STILL LIVE` (via `--verify`) come first, then
+     ones in git history (where deleting the commit doesn't help), then the rest. Each gets guidance
+     matched to its situation.
+  2. **Upgrade these dependencies** — unchanged logic: minimal safe upgrade clearing the most CVEs,
+     ordered by reachability then severity, with the exact install command.
+  3. **Fix these configurations** — IaC and SAST findings with file:line and the concrete fix.
+- `brk fix` accepts `--skip`, `--verify`, and `--deps-only` (the previous dependency-only behaviour,
+  as does `--from`). Exit code is non-zero when there's anything to act on.
+- Verified end-to-end: the previously-missed repo now reports 4 actions; a repo with all three
+  categories reports 1 upgrade + 2 rotations + 2 config fixes. 109 tests total.
+
 ## [0.24.0] - 2026-10-23
 
 ### Added
@@ -383,7 +405,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.24.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.25.0...HEAD
+[0.25.0]: https://github.com/EnkiHQ/break-anything/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/EnkiHQ/break-anything/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/EnkiHQ/break-anything/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/EnkiHQ/break-anything/compare/v0.21.0...v0.22.0

@@ -1273,3 +1273,61 @@ test("summarizeVerification:按状态计数", () => {
   ]);
   assert.deepEqual(s, { active: 1, inactive: 2, unknown: 0, unsupported: 1 });
 });
+
+// ---- 统一修复计划:依赖 + 密钥 + 配置(纯函数)----
+import { buildRotations, buildConfigFixes, buildRemediationPlan } from "../src/fix.js";
+
+test("buildRotations:仍然有效的排最前,其次 git 历史,文案随之变化", () => {
+  const rows = buildRotations({ ok: true, findings: [
+    { rule: "aws-access-key-id", severity: "HIGH", source: "worktree", location: "a.env", line: 2 },
+    { rule: "slack-token", severity: "HIGH", source: "history", commit: "abc123" },
+    { rule: "github-token", severity: "HIGH", source: "worktree", location: "b.env", line: 1, verification: { status: "active" } },
+  ] });
+  assert.equal(rows[0].rule, "github-token");      // 仍然有效 → 最前
+  assert.equal(rows[0].live, true);
+  assert.match(rows[0].action, /立即轮换/);
+  assert.equal(rows[1].rule, "slack-token");       // git 历史 → 次之
+  assert.match(rows[1].location, /git history @abc123/);
+  assert.match(rows[1].action, /删掉提交并不会使其失效/);
+});
+
+test("buildRotations:扫描失败或无发现时返回空", () => {
+  assert.deepEqual(buildRotations(null), []);
+  assert.deepEqual(buildRotations({ ok: false, findings: [] }), []);
+  assert.deepEqual(buildRotations({ ok: true, findings: [] }), []);
+});
+
+test("buildConfigFixes:合并 iac+sast 并按严重度排序,带修复建议", () => {
+  const out = buildConfigFixes({
+    iac: { ok: true, findings: [{ rule: "docker-latest-tag", severity: "MEDIUM", title: "latest", location: "Dockerfile:1", remediation: "pin it" }] },
+    sast: { ok: true, findings: [{ rule: "xss", severity: "HIGH", message: "XSS", location: "a.js:3" }] },
+    secrets: { ok: true, findings: [{ rule: "x" }] },  // 不应混进配置修复
+  });
+  assert.equal(out.length, 2);
+  assert.equal(out[0].severity, "HIGH");           // 高危在前
+  assert.equal(out[0].kind, "code");
+  assert.equal(out[1].kind, "iac");
+  assert.equal(out[1].action, "pin it");
+});
+
+test("buildRemediationPlan:三类汇总,actionsTotal 与 liveSecrets 正确", () => {
+  const plan = buildRemediationPlan({
+    deps: { ok: true, findings: [
+      { package: "lodash", version: "4.17.4", ecosystem: "npm", reachability: "called", severity: "HIGH", cve: "CVE-1", fixedVersions: ["4.17.21"] },
+    ] },
+    secrets: { ok: true, findings: [
+      { rule: "github-token", severity: "HIGH", source: "worktree", location: "a", line: 1, verification: { status: "active" } },
+    ] },
+    iac: { ok: true, findings: [{ rule: "docker-no-user", severity: "MEDIUM", title: "root", location: "Dockerfile:1" }] },
+  });
+  assert.equal(plan.summary.upgradeCount, 1);
+  assert.equal(plan.summary.rotationCount, 1);
+  assert.equal(plan.summary.liveSecrets, 1);
+  assert.equal(plan.summary.configFixCount, 1);
+  assert.equal(plan.summary.actionsTotal, 3);
+});
+
+test("buildRemediationPlan:全空时 actionsTotal 为 0(才可报'无需修复')", () => {
+  const plan = buildRemediationPlan({ deps: { ok: true, findings: [] }, secrets: { ok: true, findings: [] }, iac: { ok: true, findings: [] } });
+  assert.equal(plan.summary.actionsTotal, 0);
+});

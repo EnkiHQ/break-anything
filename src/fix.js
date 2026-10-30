@@ -131,3 +131,100 @@ export async function fixDependencies(targetPath, { reachability = true, finding
   }
   return { ok: true, target: scan.target, scanned: scan.scanned, ...planFix(scan.findings) };
 }
+
+// ---- 统一修复计划:依赖升级 + 密钥轮换 + 配置修复 ----
+// 诚实动机:fix 过去只看依赖,仓库里有 IaC 问题和泄露密钥时也会说"没有要修的",这是误导。
+
+// 密钥 → 轮换项(纯函数,可单测)。已验证仍然有效的排最前,其次是进了 git 历史的。
+export function buildRotations(secrets) {
+  if (!secrets || !secrets.ok) return [];
+  const rows = (secrets.findings || []).map((f) => {
+    const live = !!(f.verification && f.verification.status === "active");
+    const inHistory = f.source === "history";
+    return {
+      rule: f.rule,
+      severity: f.severity,
+      location: inHistory ? `git history @${f.commit || "?"}` : `${f.location || ""}${f.line ? `:${f.line}` : ""}`,
+      inHistory,
+      live,
+      verification: f.verification ? f.verification.status : null,
+      action: live
+        ? "立即轮换:该密钥此刻仍然有效,并检查是否已被使用"
+        : (inHistory
+          ? "轮换该密钥:删掉提交并不会使其失效"
+          : "轮换该密钥,并改为从环境变量/密钥管理服务注入"),
+    };
+  });
+  rows.sort((a, b) =>
+    (b.live ? 1 : 0) - (a.live ? 1 : 0) ||
+    (b.inHistory ? 1 : 0) - (a.inHistory ? 1 : 0) ||
+    severityRank(b.severity) - severityRank(a.severity));
+  return rows;
+}
+
+// IaC / SAST → 配置与代码修复项(纯函数,可单测)
+export function buildConfigFixes(categories) {
+  const out = [];
+  for (const [key, kind] of [["iac", "iac"], ["sast", "code"]]) {
+    const c = categories[key];
+    if (!c || !c.ok) continue;
+    for (const f of c.findings || []) {
+      out.push({
+        kind,
+        rule: f.rule,
+        severity: f.severity || "UNKNOWN",
+        title: f.title || f.message || f.rule,
+        location: f.location || "",
+        action: f.remediation || f.message || null,
+      });
+    }
+  }
+  out.sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+  return out;
+}
+
+// 汇总成一份计划(纯函数,可单测)
+export function buildRemediationPlan(categories = {}) {
+  const depFindings = (categories.deps && categories.deps.ok && categories.deps.findings) || [];
+  const depPlan = planFix(depFindings);
+  const rotations = buildRotations(categories.secrets);
+  const configFixes = buildConfigFixes(categories);
+  return {
+    upgrades: depPlan.upgrades,
+    noFix: depPlan.noFix,
+    rotations,
+    configFixes,
+    summary: {
+      ...depPlan.summary,
+      rotationCount: rotations.length,
+      liveSecrets: rotations.filter((r) => r.live).length,
+      configFixCount: configFixes.length,
+      actionsTotal: depPlan.upgrades.length + rotations.length + configFixes.length,
+    },
+  };
+}
+
+// 入口:扫 deps + secrets + iac + sast,出一份统一修复计划
+export async function runFix(targetPath, { skip = [], reachability = true, verify = false } = {}) {
+  const want = (k) => !skip.includes(k);
+  const categories = {};
+  const safe = async (fn) => {
+    try { return await fn(); }
+    catch (e) { return { ok: false, message: e instanceof Error ? e.message : String(e), findings: [] }; }
+  };
+  if (want("deps")) categories.deps = await safe(() => scanDependencies(targetPath, { reachability }));
+  if (want("secrets")) {
+    const { scanSecrets } = await import("./secrets.js");
+    categories.secrets = await safe(() => scanSecrets(targetPath, { history: false, verify }));
+  }
+  if (want("iac")) {
+    const { scanIac } = await import("./iac.js");
+    categories.iac = await safe(() => scanIac(targetPath));
+  }
+  if (want("sast")) {
+    const { scanSast } = await import("./sast.js");
+    categories.sast = await safe(() => scanSast(targetPath));
+  }
+  const plan = buildRemediationPlan(categories);
+  return { ok: true, target: targetPath, engine: "fix", categories, ...plan };
+}

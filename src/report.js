@@ -379,16 +379,44 @@ export function renderFix(result, { color = true } = {}) {
   }
 
   const s = result.summary;
-  if (!s.upgradeCount && !s.noFixCount) {
+  const zhF = LANG === "zh";
+  const unified = result.rotations || result.configFixes;      // runFix 的统一计划
+  const nothing = unified
+    ? !s.actionsTotal && !s.noFixCount
+    : !s.upgradeCount && !s.noFixCount;
+
+  if (nothing) {
     lines.push(`${c.gray}${result.target}${c.reset}`);
     lines.push("");
-    lines.push(`${c.green}${T.fixClean}${c.reset}`);
+    lines.push(`${c.green}${unified ? (zhF ? "✓ 没有要修的——依赖、密钥、配置均未发现问题。" : "✓ Nothing to fix — no dependency, secret, or configuration issues found.") : T.fixClean}${c.reset}`);
+    lines.push(`${c.gray}${T.cleanNote}${c.reset}`);
     return lines.join("\n");
   }
 
-  lines.push(`${c.gray}${result.target}  ·  ${T.fixHead(s.upgradeCount, s.resolvedVulns)}${c.reset}`);
+  if (unified) {
+    const head = zhF
+      ? `${s.actionsTotal} 项待处理  ·  ${s.upgradeCount} 个升级 / ${s.rotationCount} 个密钥轮换 / ${s.configFixCount} 个配置修复`
+      : `${s.actionsTotal} actions  ·  ${s.upgradeCount} upgrades / ${s.rotationCount} rotations / ${s.configFixCount} config fixes`;
+    lines.push(`${c.gray}${result.target}  ·  ${head}${c.reset}`);
+  } else {
+    lines.push(`${c.gray}${result.target}  ·  ${T.fixHead(s.upgradeCount, s.resolvedVulns)}${c.reset}`);
+  }
   lines.push("");
 
+  // 密钥轮换最紧急:仍然有效的排最前
+  if (result.rotations && result.rotations.length) {
+    lines.push(`${c.bold}${c.red}${zhF ? "① 轮换这些密钥" : "① Rotate these secrets"}${c.reset}`);
+    result.rotations.forEach((r, i) => {
+      const liveTag = r.live ? ` ${c.red}${c.bold}[${zhF ? "仍然有效" : "STILL LIVE"}]${c.reset}` : "";
+      lines.push(`  ${i + 1}. ${c.bold}${r.rule}${c.reset}${liveTag}  ${c.gray}${r.location}${c.reset}`);
+      lines.push(`     ${c.cyan}${r.action}${c.reset}`);
+    });
+    lines.push("");
+  }
+
+  if (unified && result.upgrades.length) {
+    lines.push(`${c.bold}${zhF ? "② 升级这些依赖" : "② Upgrade these dependencies"}${c.reset}`);
+  }
   result.upgrades.forEach((u, i) => {
     const reachLabel = T.reach[reachName(u.maxReach)] || "";
     const tag = `${reachLabel} · ${u.maxSeverity}`;
@@ -407,6 +435,18 @@ export function renderFix(result, { color = true } = {}) {
       lines.push(`  ${sev} ${c.bold}${n.package}@${n.version}${c.reset} ${c.cyan}${n.cve}${c.reset} ${c.gray}(${T.reach[n.reachability] || n.reachability})${c.reset}${kevBadge}`);
     }
     lines.push(`  ${c.gray}${T.fixNoFixHint}${c.reset}`);
+  }
+
+  // 配置与代码修复
+  if (result.configFixes && result.configFixes.length) {
+    lines.push("");
+    lines.push(`${c.bold}${zhF ? "③ 修这些配置与代码" : "③ Fix these configurations"}${c.reset}`);
+    for (const f of result.configFixes) {
+      const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
+      lines.push(`  ${sev} ${c.bold}${f.title}${c.reset} ${c.gray}${f.kind} · ${f.rule}${c.reset}`);
+      lines.push(`     ${c.cyan}${f.location}${c.reset}`);
+      if (f.action) lines.push(`     ${c.gray}${f.action.slice(0, 150)}${c.reset}`);
+    }
   }
 
   lines.push("");

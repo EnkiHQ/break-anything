@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.24.0";
+const VERSION = "0.25.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -16,7 +16,7 @@ const HELP = `Break Anything (brk) v${VERSION}
   brk api <baseUrl>      对运行中的 API 做越权(IDOR)/鉴权检测(动态,默认关闭,需授权)
   brk nuclei <url>       用 Nuclei 社区模板扫运行中的目标(需 nuclei,动态,默认关闭,需授权)
   brk goreach [path]     Go 符号级可达性:脆弱函数是否真在调用链上(需 govulncheck)
-  brk fix [path]         把依赖扫描结果变成按优先级排序的修复计划(含升级命令)
+  brk fix [path]         统一修复计划:依赖升级 + 密钥轮换 + 配置修复(--deps-only 只看依赖)
   brk sbom [path]        生成 CycloneDX SBOM(--out 写文件,--diff 旧SBOM 比对变更)
   brk ci [path]          一条命令跑完 deps+secrets+iac+sast,聚合成一份报告 + 一个门禁退出码
   brk mcp                以 MCP server 模式启动(供 Agent 调用)
@@ -219,8 +219,21 @@ async function main() {
   if (cmd === "fix") {
     const { flags, positional } = parseFlags(rest);
     const target = positional[0] || process.cwd();
-    const { fixDependencies } = await import("../src/fix.js");
+    const { fixDependencies, runFix } = await import("../src/fix.js");
     const { renderFix } = await import("../src/report.js");
+    // 默认出"统一修复计划"(依赖+密钥+配置);--from 或 --deps-only 时只算依赖
+    if (!flags.from && !flags["deps-only"]) {
+      const skip = typeof flags.skip === "string" ? flags.skip.split(",").map((s) => s.trim()).filter(Boolean) : [];
+      const result = await runFix(target, { skip, reachability: flags.reachability !== false, verify: !!flags.verify });
+      if (flags.json) {
+        process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+      } else {
+        const color = flags.color !== false && process.stdout.isTTY;
+        process.stdout.write(renderFix(result, { color }) + "\n");
+      }
+      process.exitCode = result.summary.actionsTotal ? 1 : 0;
+      return;
+    }
     let opts = { reachability: flags.reachability !== false };
     if (flags.from) {
       const fs = await import("node:fs/promises");

@@ -279,7 +279,7 @@ already run in real pipelines. ✅ shipped · 🧭 on the roadmap.
 - **Container images** — OS + app CVEs, Dockerfile smells, secrets in layers. Engine: [Trivy](https://github.com/aquasecurity/trivy).
 - **API security (DAST)** — probe a *running* API for broken object-level authorization (IDOR/BOLA), missing auth, and missing security headers, each **proven with the reproducing request**. Built in; off by default, authorized targets only.
 - **Nuclei templates (DAST)** — ~14,000 [Nuclei](https://github.com/projectdiscovery/nuclei) community templates against your authorized target: known CVEs, exposed panels and config files, default credentials, takeovers. Off by default, authorized targets only.
-- **Fix planning** — the minimal safe upgrade that clears the most CVEs per package, ordered by reachability then severity, with the exact `npm`/`pip`/`composer` command. No-fix packages get mitigation guidance.
+- **Unified fix planning** — one prioritized remediation plan across everything: **rotate** leaked secrets (live ones first), **upgrade** dependencies (minimal safe version clearing the most CVEs, with the exact command), and **fix** IaC/code misconfigurations (file:line + the concrete change). No-fix packages get mitigation guidance.
 - **Standards output** — CycloneDX SBOM generation + diff, and SARIF 2.1.0 for every scanner.
 - **One-shot CI gate** — `ci` runs deps + secrets + IaC + SAST in one command, one report, one merged SARIF, one exit code.
 

@@ -1,6 +1,6 @@
 {
   "name": "break-anything",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "One CLI and MCP server for coding agents to find vulnerabilities across code, dependencies, apps, and infrastructure — on targets you own or are authorized to test.",
   "type": "module",
   "keywords": [

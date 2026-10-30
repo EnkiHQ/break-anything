@@ -212,7 +212,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.24.0" },
+    { name: "break-anything", version: "0.25.0" },
     { capabilities: { tools: {} } },
   );
 
