@@ -23,7 +23,7 @@ const SKIP_DIR = new Set(["node_modules", ".git", "dist", "build", "vendor", ".v
 const SKIP_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".zip", ".gz", ".lock", ".min.js", ".map"]);
 const MAX_FILE_BYTES = 1_000_000;
 
-export async function scanSecrets(targetPath, { history = false } = {}) {
+export async function scanSecrets(targetPath, { history = false, verify = false } = {}) {
   const dir = await resolveDir(targetPath);
   const findings = [];
 
@@ -50,15 +50,27 @@ export async function scanSecrets(targetPath, { history = false } = {}) {
   dedupe(findings);
   findings.sort((a, b) => sevRank(b.severity) - sevRank(a.severity));
 
+  // 存活验证(可选,会联网)。无论开不开,都必须保证 __raw 不出现在返回值里。
+  let verification = null;
+  if (verify) {
+    const { verifyFindings, summarizeVerification } = await import("./verify.js");
+    await verifyFindings(findings);           // 内部用完即删 __raw
+    verification = summarizeVerification(findings);
+  } else {
+    for (const f of findings) delete f.__raw;
+  }
+
   return {
     target: dir,
     ok: true,
     historyScanned,
+    verified: !!verify,
     findings,
     summary: {
       total: findings.length,
       bySeverity: countBy(findings, "severity"),
       inHistory: findings.filter((f) => f.source === "history").length,
+      ...(verification ? { verification } : {}),
     },
   };
 }
@@ -80,6 +92,8 @@ function scanText(text, meta, findings) {
         source: meta.source,
         commit: meta.commit || null,
         match: redact(raw),
+        // 原始值仅在开启 --verify 时于内存中短暂使用,验证完立即删除,绝不进入输出
+        __raw: raw,
       });
     }
   }

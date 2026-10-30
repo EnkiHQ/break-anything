@@ -174,18 +174,46 @@ export function renderSecrets(result, { color = true } = {}) {
     return lines.join("\n");
   }
 
+  const zhS = LANG === "zh";
+  const VSTAT = {
+    active: { txt: zhS ? "仍然有效" : "STILL LIVE", col: c.red, bold: true },
+    inactive: { txt: zhS ? "已失效" : "revoked", col: c.green, bold: false },
+    unknown: { txt: zhS ? "无法确认" : "unverified", col: c.gray, bold: false },
+    unsupported: { txt: zhS ? "不支持验证" : "not verifiable", col: c.gray, bold: false },
+  };
+
   for (const f of result.findings) {
     const sev = `${SEV_COLOR[f.severity] || ""}${f.severity.padEnd(8)}${c.reset}`;
     const loc = f.source === "history"
       ? `${c.yellow}${T.history}${c.reset} ${c.gray}@${f.commit}${c.reset}`
       : `${f.location}${f.line ? `:${f.line}` : ""}`;
-    lines.push(`${sev} ${c.bold}${f.rule}${c.reset}`);
+    let vbadge = "";
+    if (f.verification) {
+      const v = VSTAT[f.verification.status] || VSTAT.unknown;
+      vbadge = ` ${v.col}${v.bold ? c.bold : ""}[${v.txt}]${c.reset}`;
+    }
+    lines.push(`${sev} ${c.bold}${f.rule}${c.reset}${vbadge}`);
     lines.push(`  ${loc}  ·  ${c.gray}${f.match}${c.reset}`);
+    if (f.verification && f.verification.status === "unsupported" && f.verification.reason) {
+      lines.push(`  ${c.gray}${f.verification.reason}${c.reset}`);
+    }
   }
   lines.push("");
   const s = result.summary;
   const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
   lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${s.inHistory} ${T.inHistory}  ·  ${parts}`);
+  if (s.verification) {
+    const v = s.verification;
+    const bits = [];
+    if (v.active) bits.push(`${c.red}${c.bold}${v.active} ${zhS ? "仍然有效" : "still live"}${c.reset}`);
+    if (v.inactive) bits.push(`${c.green}${v.inactive} ${zhS ? "已失效" : "revoked"}${c.reset}`);
+    if (v.unknown) bits.push(`${c.gray}${v.unknown} ${zhS ? "无法确认" : "unverified"}${c.reset}`);
+    if (v.unsupported) bits.push(`${c.gray}${v.unsupported} ${zhS ? "不支持验证" : "not verifiable"}${c.reset}`);
+    lines.push(`${c.bold}${zhS ? "存活验证" : "verification"}${c.reset} ${bits.join("  ·  ")}`);
+    if (v.active) {
+      lines.push(`${c.red}${c.bold}${zhS ? "⚠ 有密钥此刻仍然有效 —— 立即轮换,并检查是否已被使用。" : "⚠ A leaked credential is STILL LIVE — rotate it now and audit for use."}${c.reset}`);
+    }
+  }
   if (s.inHistory) lines.push(`${c.yellow}${T.rotate}${c.reset}`);
   return lines.join("\n");
 }

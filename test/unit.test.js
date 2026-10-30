@@ -1231,3 +1231,45 @@ test("evaluateGate:Go 脆弱函数被调用才触发,仅导入/仅依赖不触�
   }, { failOn: "HIGH" });
   assert.equal(clean.passed, true);
 });
+
+// ---- 密钥存活验证(纯函数,不触网)----
+import { interpretStatus, isVerifiable, summarizeVerification, UNVERIFIABLE_REASON, VERIFIERS } from "../src/verify.js";
+
+test("interpretStatus:200→有效,401/403→失效,限流/故障→无法确认", () => {
+  assert.equal(interpretStatus(200), "active");
+  assert.equal(interpretStatus(401), "inactive");
+  assert.equal(interpretStatus(403), "inactive");
+  assert.equal(interpretStatus(429), "unknown"); // 被限流不能断言失效
+  assert.equal(interpretStatus(500), "unknown"); // 对方故障不能断言失效
+  assert.equal(interpretStatus(404), "unknown");
+});
+
+test("isVerifiable:已支持的类型可验证,AWS Key ID 等如实不支持且给出原因", () => {
+  assert.equal(isVerifiable("github-token"), true);
+  assert.equal(isVerifiable("slack-token"), true);
+  assert.equal(isVerifiable("aws-access-key-id"), false);
+  assert.match(UNVERIFIABLE_REASON["aws-access-key-id"], /Secret Key/);
+  assert.ok(UNVERIFIABLE_REASON["jwt"]);
+});
+
+test("VERIFIERS:构造的请求只带只读端点与凭据头,不含写操作", () => {
+  const gh = VERIFIERS["github-token"].build("TOKEN123");
+  assert.equal(gh.url, "https://api.github.com/user");
+  assert.equal(gh.headers.authorization, "Bearer TOKEN123");
+  assert.ok(!gh.method || gh.method === "GET");
+  // Slack 必须看 body,因为无效 token 也回 200
+  assert.equal(VERIFIERS["slack-token"].inspectBody('{"ok":false,"error":"invalid_auth"}'), "inactive");
+  assert.equal(VERIFIERS["slack-token"].inspectBody('{"ok":true}'), "active");
+  assert.equal(VERIFIERS["slack-token"].inspectBody("not json"), "unknown");
+});
+
+test("summarizeVerification:按状态计数", () => {
+  const s = summarizeVerification([
+    { verification: { status: "active" } },
+    { verification: { status: "inactive" } },
+    { verification: { status: "inactive" } },
+    { verification: { status: "unsupported" } },
+    { },
+  ]);
+  assert.deepEqual(s, { active: 1, inactive: 2, unknown: 0, unsupported: 1 });
+});

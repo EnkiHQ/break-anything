@@ -48,6 +48,7 @@ const TOOLS = [
       properties: {
         path: { type: "string", description: "Absolute path to the repository to scan." },
         history: { type: "boolean", description: "Also scan git history (git log -p). Default false." },
+        verify: { type: "boolean", description: "Check whether each leaked credential is STILL LIVE via the vendor's read-only identity endpoint. Off by default; sends one request per credential. Raw secrets are never returned." },
       },
       required: ["path"],
     },
@@ -211,7 +212,7 @@ const TOOLS = [
 
 export async function startMcpServer() {
   const server = new Server(
-    { name: "break-anything", version: "0.23.0" },
+    { name: "break-anything", version: "0.24.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -226,7 +227,7 @@ export async function startMcpServer() {
         result = await scanDependencies(args.path, { reachability: args.reachability !== false });
       } else if (name === "secrets_scan") {
         if (!strArg(args.path)) return bad("缺少必填参数 path。");
-        result = await scanSecrets(args.path, { history: !!args.history });
+        result = await scanSecrets(args.path, { history: !!args.history, verify: !!args.verify });
       } else if (name === "image_scan") {
         if (!strArg(args.ref)) return bad("缺少必填参数 ref。");
         result = await scanImage(args.ref);

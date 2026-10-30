@@ -12,6 +12,33 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.24.0] - 2026-10-23
+
+### Added
+- **`secrets --verify`: is the leaked credential still live?** This is the difference between "rotate
+  it sometime" and "rotate it now and audit for use." Each finding is labelled
+  **STILL LIVE / revoked / unverified / not verifiable**, and a live credential triggers a loud
+  warning.
+  - Verifies GitHub tokens, GitLab PATs, OpenAI keys, Stripe secret keys, and Slack tokens against
+    each vendor's **read-only identity endpoint** (the "who am I" call). Slack is checked via the
+    response body because it returns 200 even for invalid tokens.
+  - **Honest about what it can't do:** an AWS Access Key ID alone is cryptographically unverifiable
+    without its Secret Key, so it's reported as *not verifiable* with the reason — never as "fine".
+    Same for private keys, JWTs, Google API keys, and generic pattern hits.
+  - Rate limits (429) and vendor outages (5xx) report *unverified*, never "revoked".
+
+### Security
+- Opt-in only (`--verify`), off by default, since it sends one request per credential to its vendor.
+- Only read-only identity endpoints are called — never a write operation.
+- The raw secret is used solely to build the request header, is deleted immediately afterwards, and
+  **never** appears in output, JSON, SARIF, or the HTML report. Output stays redacted
+  (`ghp_…AAAA (40 chars)`). Verified by a test asserting no raw value leaks into the result.
+
+### Notes
+- Verified against real vendor APIs: five syntactically-valid but invalid credentials were all
+  correctly reported revoked; the active path was confirmed against a genuinely live token
+  (HTTP 200 → STILL LIVE). 104 tests total.
+
 ## [0.23.0] - 2026-10-23
 
 ### Added
@@ -356,7 +383,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/EnkiHQ/break-anything/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/EnkiHQ/break-anything/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/EnkiHQ/break-anything/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/EnkiHQ/break-anything/compare/v0.20.0...v0.21.0

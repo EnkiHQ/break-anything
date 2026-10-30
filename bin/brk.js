@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.23.0";
+const VERSION = "0.24.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -33,6 +33,7 @@ deps 选项:
   --no-reachability      跳过源码可达性初判
 secrets 选项:
   --history              加扫 git 历史中的密钥
+  --verify               验证密钥是否仍然有效(会向厂商发只读身份请求,默认关闭)
 ci 选项:
   --fail-on=<sev>        门禁阈值 critical|high|medium|low(默认 high)
   --skip=a,b             跳过某些类别(deps,secrets,iac,sast)
@@ -115,7 +116,7 @@ async function main() {
     const target = positional[0] || process.cwd();
     const { scanSecrets } = await import("../src/secrets.js");
     const { renderSecrets } = await import("../src/report.js");
-    const result = await scanSecrets(target, { history: !!flags.history });
+    const result = await scanSecrets(target, { history: !!flags.history, verify: !!flags.verify });
     if (flags.sarif) {
       const { toSarif } = await import("../src/sarif.js");
       process.stdout.write(JSON.stringify(toSarif("secrets", result), null, 2) + "\n");
