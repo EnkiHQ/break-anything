@@ -419,7 +419,7 @@ export function renderCi(result, { color = true } = {}) {
   lines.push(`${c.gray}${result.target}${c.reset}`);
   lines.push("");
 
-  const label = { deps: zh ? "依赖" : "deps", secrets: zh ? "密钥" : "secrets", iac: "iac", sast: zh ? "代码(SAST)" : "sast" };
+  const label = { deps: zh ? "依赖" : "deps", secrets: zh ? "密钥" : "secrets", iac: "iac", sast: zh ? "代码(SAST)" : "sast", goreach: zh ? "Go 可达性" : "goreach" };
   for (const [key, cat] of Object.entries(result.categories)) {
     const name = (label[key] || key).padEnd(12);
     if (!cat || cat.ok === false) {
@@ -546,5 +546,54 @@ export function renderGoReach(result, { color = true, top } = {}) {
   const parts = Object.entries(s.bySeverity).sort((a, b) => sevOrder(b[0]) - sevOrder(a[0])).map(([k, v]) => `${k} ${v}`).join("  ");
   lines.push(`${c.bold}${T.summary}${c.reset} ${s.total} ${T.findings}  ·  ${c.red}${s.called} ${zh ? "被调用" : "called"}${c.reset}  ·  ${s.imported} ${zh ? "仅导入" : "imported"}${parts ? `  ·  ${parts}` : ""}`);
   lines.push(`${c.gray}${zh ? "「被调用」由 govulncheck 的调用图分析得出,指公告里那个具体脆弱函数在你代码的调用链上。" : "\"called\" comes from govulncheck's call-graph analysis: the specific vulnerable function named in the advisory is on a real path from your code."}${c.reset}`);
+  return lines.join("\n");
+}
+
+// ---- doctor:环境与能力清单 ----
+export function renderDoctor(r, { color = true } = {}) {
+  const c = palette(color);
+  const zh = LANG === "zh";
+  const lines = [];
+  lines.push(`${c.bold}Break Anything · ${zh ? "环境自检" : "environment check"}${c.reset}`);
+  lines.push("");
+
+  // 运行时
+  lines.push(`${r.node.ok ? c.green + "✓" : c.red + "✗"}${c.reset} Node.js ${r.node.version}${r.node.ok ? "" : ` ${c.red}${zh ? "需要 >= 18.17" : "requires >= 18.17"}${c.reset}`}`);
+  lines.push(`${r.osv.ok ? c.green + "✓" : c.yellow + "✗"}${c.reset} OSV API ${r.osv.ok ? (zh ? "可达" : "reachable") : `${zh ? "不可达" : "unreachable"} ${c.gray}(${r.osv.error || ""})${c.reset}`}`);
+  lines.push("");
+
+  // 能力清单
+  lines.push(`${c.bold}${zh ? "能力" : "capabilities"}${c.reset} ${c.gray}${r.summary.available}/${r.summary.total} ${zh ? "可用" : "available"}${c.reset}`);
+  for (const cap of r.capabilities) {
+    const mark = cap.available ? `${c.green}●${c.reset}` : `${c.gray}○${c.reset}`;
+    const tag = cap.builtin
+      ? `${c.gray}${zh ? "内置" : "built-in"}${c.reset}`
+      : (cap.available ? `${c.gray}${cap.engine}${c.reset}` : `${c.yellow}${zh ? "需装 " : "needs "}${cap.missingEngine}${c.reset}`);
+    const dyn = cap.dynamic ? ` ${c.gray}${zh ? "[动态·需授权]" : "[dynamic·authz]"}${c.reset}` : "";
+    lines.push(`  ${mark} ${c.bold}brk ${cap.name}${c.reset}  ${c.gray}${cap.note}${c.reset}  ${tag}${dyn}`);
+  }
+
+  // 缺失引擎的安装指引
+  const missing = r.engines.filter((e) => !e.installed);
+  if (missing.length) {
+    lines.push("");
+    lines.push(`${c.bold}${zh ? "可选引擎(装了即解锁对应能力)" : "optional engines (install to unlock)"}${c.reset}`);
+    for (const e of missing) {
+      lines.push(`  ${c.yellow}○${c.reset} ${e.bin} ${c.gray}→ brk ${e.powers.join(", ")}${c.reset}`);
+      lines.push(`      ${c.cyan}${e.install}${c.reset}`);
+    }
+  }
+
+  // 动态能力闸门
+  lines.push("");
+  const g = r.dynamicGate;
+  if (g.ready) {
+    lines.push(`${c.green}✓${c.reset} ${zh ? "动态能力已授权" : "dynamic capabilities authorized"} ${c.gray}(${g.targets.length} ${zh ? "个白名单目标" : "allowlisted target(s)"})${c.reset}`);
+  } else {
+    lines.push(`${c.gray}○ ${zh ? "动态能力(api / nuclei)默认关闭。开启方式:" : "dynamic capabilities (api / nuclei) are off by default. To enable:"}${c.reset}`);
+    lines.push(`    ${c.cyan}export BRK_DYNAMIC_ENABLED=true${c.reset}`);
+    lines.push(`    ${c.cyan}export BRK_AUTHORIZED_TARGETS_JSON='["http://localhost:3000"]'${c.reset}`);
+    lines.push(`    ${c.gray}${zh ? "只填你拥有或已获授权的目标。" : "List only targets you own or are authorized to test."}${c.reset}`);
+  }
   return lines.join("\n");
 }

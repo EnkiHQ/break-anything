@@ -1182,3 +1182,52 @@ test("normalizeGovulncheck:关联 osv 元数据,同一漏洞保留最强可达�
   assert.deepEqual(r.findings[0].fixedVersions, ["0.3.7"]);
   assert.equal(r.findings[0].callPath.length, 2);
 });
+
+// ---- doctor:能力/引擎映射与动态闸门(纯函数)----
+import { assessCapabilities, assessDynamicGate, CAPABILITIES } from "../src/doctor.js";
+
+test("assessCapabilities:内置能力总可用,外部引擎按安装情况判定", () => {
+  const caps = assessCapabilities(new Set(["semgrep"]));
+  const byName = Object.fromEntries(caps.map((c) => [c.name, c]));
+  assert.equal(byName.deps.available, true);          // 内置
+  assert.equal(byName.deps.missingEngine, null);
+  assert.equal(byName.sast.available, true);          // semgrep 已装
+  assert.equal(byName.image.available, false);        // trivy 未装
+  assert.equal(byName.image.missingEngine, "trivy");
+  assert.equal(byName.goreach.missingEngine, "govulncheck");
+});
+
+test("assessCapabilities:全部引擎齐备时所有能力可用", () => {
+  const caps = assessCapabilities(["trivy", "semgrep", "nuclei", "govulncheck"]);
+  assert.equal(caps.filter((c) => c.available).length, CAPABILITIES.length);
+});
+
+test("assessDynamicGate:需同时开开关且有白名单目标才算 ready", () => {
+  assert.equal(assessDynamicGate({}).ready, false);
+  assert.equal(assessDynamicGate({ BRK_DYNAMIC_ENABLED: "true" }).ready, false); // 没有目标
+  const ok = assessDynamicGate({ BRK_DYNAMIC_ENABLED: "true", BRK_AUTHORIZED_TARGETS_JSON: '["http://localhost:3000"]' });
+  assert.equal(ok.ready, true);
+  assert.deepEqual(ok.targets, ["http://localhost:3000"]);
+  // 坏 JSON 不抛异常
+  assert.equal(assessDynamicGate({ BRK_DYNAMIC_ENABLED: "true", BRK_AUTHORIZED_TARGETS_JSON: "{bad" }).ready, false);
+});
+
+// ---- ci 门禁:Go 符号级可达性参与判定 ----
+test("evaluateGate:Go 脆弱函数被调用才触发,仅导入/仅依赖不触发", () => {
+  const called = evaluateGate({
+    goreach: { ok: true, findings: [
+      { reachability: "called", severity: "UNKNOWN" },
+      { reachability: "imported", severity: "UNKNOWN" },
+      { reachability: "required", severity: "UNKNOWN" },
+    ] },
+  }, { failOn: "HIGH" });
+  assert.equal(called.passed, false);
+  assert.ok(called.reasons.some((r) => /vulnerable function actually called/.test(r)));
+  assert.ok(/^1 Go vulnerability/.test(called.reasons.find((r) => /called/.test(r))));
+
+  // 没有 called 的情况应通过(即使有一堆 imported/required)
+  const clean = evaluateGate({
+    goreach: { ok: true, findings: [{ reachability: "imported" }, { reachability: "required" }] },
+  }, { failOn: "HIGH" });
+  assert.equal(clean.passed, true);
+});

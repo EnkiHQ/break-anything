@@ -12,6 +12,28 @@ All notable changes to Break Anything are documented here. This project follows
 - Offensive / exploitation family (Metasploit etc.) — gated, authorized-only.
 - Call-graph reachability to the specific vulnerable symbol.
 
+## [0.23.0] - 2026-10-23
+
+### Added
+- **`ci` now includes Go symbol-level reachability.** The one-command gate had fallen behind the
+  capabilities added in 0.21/0.22. `ci` auto-detects a Go module (`go.mod`) and runs `goreach`; the
+  category simply doesn't appear for non-Go projects (not applicable, rather than "skipped").
+  The gate trips **only when a vulnerable function is actually called** — so a Go repo with 40
+  advisories but one real call path fails for exactly that one reason.
+- **`doctor` is now a real capability inventory.** It reports, in one screen: Node/OSV status, every
+  capability and whether it's available right now, which optional engine each missing one needs plus
+  the exact install command, and whether the dynamic-capability authorization gate is armed.
+  `--json` for scripting.
+
+### Changed
+- `ci --skip` accepts `goreach`; `CI_CATEGORIES` is now deps, secrets, iac, sast, goreach.
+
+### Notes
+- Verified end-to-end: `doctor` correctly reported 8/11 capabilities with engines absent and 10/11
+  with govulncheck+nuclei on PATH; `ci` on a real Go module produced the gate reason "1 Go
+  vulnerability with the vulnerable function actually called" (exit 1), and omitted the category
+  entirely on a non-Go project. 100 tests total.
+
 ## [0.22.0] - 2026-10-23
 
 ### Added
@@ -334,7 +356,8 @@ All notable changes to Break Anything are documented here. This project follows
 - MCP server exposing `deps_scan`, `secrets_scan`, and `image_scan`.
 - CLI (`brk`) with human-readable and `--json` output, plus CI-friendly exit codes.
 
-[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/EnkiHQ/break-anything/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/EnkiHQ/break-anything/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/EnkiHQ/break-anything/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/EnkiHQ/break-anything/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/EnkiHQ/break-anything/compare/v0.19.0...v0.20.0

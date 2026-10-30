@@ -2,7 +2,7 @@
 import { scanDependencies } from "../src/scan.js";
 import { renderHuman } from "../src/report.js";
 
-const VERSION = "0.22.0";
+const VERSION = "0.23.0";
 
 const HELP = `Break Anything (brk) v${VERSION}
 点你的 Agent 指向你拥有或已授权的软件,找到漏洞、证明它、修好它。
@@ -365,7 +365,17 @@ async function main() {
   }
 
   if (cmd === "doctor") {
-    await doctor();
+    const { flags } = parseFlags(rest);
+    const { runDoctor } = await import("../src/doctor.js");
+    const { renderDoctor } = await import("../src/report.js");
+    const result = await runDoctor();
+    if (flags.json) {
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    } else {
+      const color = flags.color !== false && process.stdout.isTTY;
+      process.stdout.write(renderDoctor(result, { color }) + "\n");
+    }
+    process.exitCode = result.node.ok ? 0 : 1;
     return;
   }
 
@@ -407,24 +417,6 @@ async function main() {
 
   process.stderr.write(`未知命令:${cmd}\n\n${HELP}`);
   process.exitCode = 2;
-}
-
-async function doctor() {
-  const out = [];
-  const [maj] = process.versions.node.split(".").map(Number);
-  out.push(`Node.js ${process.versions.node} ${maj >= 18 ? "✓" : "✗ 需要 >= 18.17"}`);
-  try {
-    const { fetchJson } = await import("../src/http.js");
-    await fetchJson("https://api.osv.dev/v1/query", {
-      method: "POST",
-      body: { version: "4.17.4", package: { name: "lodash", ecosystem: "npm" } },
-      timeoutMs: 8000,
-    });
-    out.push("OSV API 可达 ✓");
-  } catch (e) {
-    out.push(`OSV API 不可达 ✗ (${e instanceof Error ? e.message : e})`);
-  }
-  process.stdout.write(out.join("\n") + "\n");
 }
 
 main().catch((err) => {

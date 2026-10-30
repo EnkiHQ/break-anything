@@ -10,7 +10,7 @@ import { applyPolicy } from "./policy.js";
 const SEV = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, UNKNOWN: 0 };
 function sevRank(s) { return SEV[String(s || "").toUpperCase()] ?? 0; }
 
-export const CI_CATEGORIES = ["deps", "secrets", "iac", "sast"];
+export const CI_CATEGORIES = ["deps", "secrets", "iac", "sast", "goreach"];
 
 // 门禁判定(纯函数,可单测):返回是否通过 + 触发原因列表
 export function evaluateGate(categories, { failOn = "HIGH" } = {}) {
@@ -37,6 +37,16 @@ export function evaluateGate(categories, { failOn = "HIGH" } = {}) {
     if (c && c.ok) {
       const bad = (c.findings || []).filter((f) => sevRank(f.severity) >= thr);
       if (bad.length) reasons.push(`${bad.length} ${failOn}+ ${label} issue${bad.length === 1 ? "" : "s"}`);
+    }
+  }
+
+  // Go 符号级可达性:只有"公告里的脆弱函数真被调用"才算,这是最硬的信号,
+  // 与严重度阈值无关(Go 公告库本身不提供严重度)。
+  const go = categories.goreach;
+  if (go && go.ok) {
+    const called = (go.findings || []).filter((f) => f.reachability === "called");
+    if (called.length) {
+      reasons.push(`${called.length} Go ${called.length === 1 ? "vulnerability" : "vulnerabilities"} with the vulnerable function actually called`);
     }
   }
 
@@ -68,6 +78,17 @@ async function safe(fn) {
   catch (e) { return { ok: false, message: e instanceof Error ? e.message : String(e), findings: [] }; }
 }
 
+async function hasGoModule(dir) {
+  try {
+    const { stat } = await import("node:fs/promises");
+    const path = await import("node:path");
+    const s = await stat(dir);
+    const base = s.isDirectory() ? dir : path.dirname(dir);
+    await stat(path.join(base, "go.mod"));
+    return true;
+  } catch { return false; }
+}
+
 // 入口:按需跑各扫描器 → 应用策略(忽略已接受项)→ 聚合 + 门禁
 export async function runCi(targetPath, { failOn = "HIGH", skip = [], ignore = [], reachability = true } = {}) {
   const raw = {};
@@ -76,6 +97,11 @@ export async function runCi(targetPath, { failOn = "HIGH", skip = [], ignore = [
   if (want("secrets")) raw.secrets = await safe(() => scanSecrets(targetPath, { history: false }));
   if (want("iac")) raw.iac = await safe(() => scanIac(targetPath));
   if (want("sast")) raw.sast = await safe(() => scanSast(targetPath));
+  // Go 符号级可达性:仅在目标确实是 Go 模块时才跑(否则不是"跳过",而是压根不适用)
+  if (want("goreach") && (await hasGoModule(targetPath))) {
+    const { scanGoReachability } = await import("./govuln.js");
+    raw.goreach = await safe(() => scanGoReachability(targetPath));
+  }
 
   const { categories, suppressed } = applyPolicy(raw, { ignore });
   const summary = aggregate(categories);
